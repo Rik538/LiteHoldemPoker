@@ -1,6 +1,6 @@
 [project]
 name = "lite-holdem-ai"
-version = "0.2.0"
+version = "0.3.0"
 description = "A Python package for Lite Holdem poker agents, CFR training, and agent evaluation."
 readme = "README.md"
 requires-python = ">=3.10"
@@ -23,3 +23,6 @@ dev = [
 [build-system]
 requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
+
+[tool.setuptools.package-data]
+lite_holdem_ai = ["data/*.json", "data/*.pkl"]
