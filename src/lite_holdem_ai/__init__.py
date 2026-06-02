@@ -4,7 +4,7 @@ leduc_ai
 A small framework for Lite Texas Holdem poker agents, CFR training, and evaluation.
 """
 
-__version__ = "0.1.0"
+__version__ = "0.2.0"
 
 from lite_holdem_ai.game.environment import LiteHoldemEnv
 from lite_holdem_ai.agents.random_agent import RandomAgent
