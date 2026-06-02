@@ -1,0 +1,29 @@
+# -*- coding: utf-8 -*-
+"""
+Created on Sun May 31 13:44:03 2026
+
+@author: Richard
+"""
+
+from lite_holdem_ai import HeuristicAgent, RandomAgent,MatchRunner,LiteHoldemEnv
+
+def main():
+    
+    
+  
+    
+    runner = MatchRunner(
+        env_factory=lambda: LiteHoldemEnv(),
+        agents=[
+                HeuristicAgent(seed=1, name="Heuristic"),
+                RandomAgent(seed = 1,name="Random")
+                
+            ],
+    )
+
+    result = runner.play_many(hands_per_seat=1000, swap_seats=True)
+    result.print_summary()
+
+
+if __name__ == "__main__":
+    main()
