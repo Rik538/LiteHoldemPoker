@@ -164,3 +164,25 @@ def test_env_step_rejects_illegal_action():
 
     with pytest.raises(ValueError):
         env.step(Action.FOLD)
+        
+def test_environment_rejects_step_after_terminal():
+    env = LiteHoldemEnv()
+    env.reset()
+
+    if Action.BET_RAISE not in env.legal_actions():
+        return
+
+    env.step(Action.BET_RAISE)
+
+    if Action.FOLD not in env.legal_actions():
+        return
+
+    env.step(Action.FOLD)
+
+    assert env.is_terminal()
+
+    try:
+        env.step(Action.CHECK_CALL)
+        assert False, "Expected ValueError"
+    except ValueError:
+        pass
