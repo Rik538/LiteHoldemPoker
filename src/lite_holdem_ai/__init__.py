@@ -14,6 +14,7 @@ from lite_holdem_ai.agents.heuristic_agent import HeuristicAgent
 from lite_holdem_ai.evaluation.match import MatchRunner
 from lite_holdem_ai.evaluation.tournament import TournamentRunner
 from lite_holdem_ai.agents.equity_agent import EquityAgent
+from lite_holdem_ai.agents.bucket_equity_agent import BucketEquityAgent
 
 __all__ = [
     "LiteHoldemEnv",
@@ -24,6 +25,7 @@ __all__ = [
     "MatchRunner",
     "TournamentRunner",
     "EquityAgent",
+    "BucketEquityAgent",
     
 ]
 

@@ -2,7 +2,7 @@
 
 `lite-holdem-ai` is a Python package for experimenting with agents in a simplified 20-card heads-up Texas Hold'em-style poker game.
 
-The project includes a playable game engine, environment wrapper, baseline agents, match evaluation, tournament evaluation, and diagnostic summaries for comparing agent behaviour.
+The project includes a playable game engine, environment wrapper, baseline agents, equity-based agents, match evaluation, tournament evaluation, CSV export, and diagnostic summaries for comparing agent behaviour.
 
 This package is intended as a bridge between small imperfect-information games like Leduc poker and larger poker AI projects.
 
@@ -27,9 +27,14 @@ This package is intended as a bridge between small imperfect-information games l
   * `PassiveAgent`
   * `AggressiveAgent`
   * `HeuristicAgent`
+* Equity-based agents:
+
+  * `EquityAgent`
+  * `BucketEquityAgent`
 * Match runner
 * Tournament runner
 * Payoff matrix generation
+* CSV export for tournament results
 * Agent style diagnostics:
 
   * VPIP-style rate
@@ -38,7 +43,8 @@ This package is intended as a bridge between small imperfect-information games l
   * showdown rate
   * fold rate
   * terminal street counts
-* CSV export for tournament results
+  * action counts by street
+  * action counts by agent
 * Pytest test suite
 
 ---
@@ -54,13 +60,16 @@ LiteHoldemPoker/
 ├── examples/
 │   ├── README.md
 │   ├── baseline_tournament.py
+│   ├── equity_tournament.py
+│   ├── bucket_equity_tournament.py
+│   ├── equity_vs_random.py
 │   ├── random_vs_random.py
-│   ├── heuristic_vs_aggressive.py
-│   └── heuristic_vs_passive.py
+│   └── heuristic_vs_aggressive.py
 │
 ├── src/
 │   └── lite_holdem_ai/
 │       ├── __init__.py
+│       ├── data/
 │       ├── game/
 │       ├── agents/
 │       └── evaluation/
@@ -100,17 +109,19 @@ The tests cover:
 * game state transitions
 * environment behaviour
 * baseline agents
+* heuristic agent behaviour
+* equity agent behaviour
+* bucket equity agent behaviour
 * match running
 * tournament running
+* tournament CSV export
 
 ---
 
 ## Quick example: random vs random
 
 ```python
-from lite_holdem_ai.agents.random_agent import RandomAgent
-from lite_holdem_ai.evaluation.match import MatchRunner
-from lite_holdem_ai.game.environment import LiteHoldemEnv
+from lite_holdem_ai import LiteHoldemEnv, MatchRunner, RandomAgent
 
 
 runner = MatchRunner(
@@ -144,23 +155,58 @@ This runs a tournament between:
 
 The output includes a payoff matrix and agent rankings.
 
-Example format:
+Each table entry is the average payoff for the row agent against the column agent.
 
-```text
-                  Random     Passive  Aggressive   Heuristic
-Random            0.0000     -0.2170     -6.9315     -4.9575
-Passive           0.2170      0.0000      0.3420      0.2685
-Aggressive        6.9315     -0.3420      0.0000     -0.8265
-Heuristic         4.9575     -0.2685      0.8265      0.0000
+---
 
-Rankings:
-1. Aggressive
-2. Heuristic
-3. Passive
-4. Random
+## Running an equity tournament
+
+To compare the equity-based agent against the baseline agents:
+
+```powershell
+py examples\equity_tournament.py
 ```
 
-Each table entry is the average payoff for the row agent against the column agent.
+This usually includes:
+
+* Random
+* Passive
+* Aggressive
+* Heuristic
+* Equity
+
+The `EquityAgent` estimates exact equity from the current private cards and public board. Preflop equity is loaded from a cached lookup table.
+
+---
+
+## Running a bucket equity tournament
+
+To compare the bucketed equity agent against all current agents:
+
+```powershell
+py examples\bucket_equity_tournament.py
+```
+
+This usually includes:
+
+* Random
+* Passive
+* Aggressive
+* Heuristic
+* Equity
+* Bucket Equity
+
+The `BucketEquityAgent` uses the same equity calculation as `EquityAgent`, but maps equity into coarse buckets before choosing an action:
+
+```text
+0 = trash
+1 = weak
+2 = medium
+3 = strong
+4 = premium
+```
+
+This makes it easier to compare smooth equity-based decisions against simpler rule-based equity bands.
 
 ---
 
@@ -216,6 +262,18 @@ Uses a rough hand-strength score based on:
 
 The heuristic is not exact equity. It is a fast rule-based baseline.
 
+### EquityAgent
+
+Calculates exact hand equity against all possible opponent hands and future boards.
+
+For preflop decisions, it uses a cached lookup table. For flop, turn, and river decisions, it enumerates remaining possibilities directly.
+
+### BucketEquityAgent
+
+Reuses the equity calculation from `EquityAgent`, then converts equity into a discrete bucket before acting.
+
+This gives a simpler and more interpretable strategy than continuous equity thresholds.
+
 ---
 
 ## Evaluation tools
@@ -225,6 +283,9 @@ The heuristic is not exact equity. It is a fast rule-based baseline.
 Runs head-to-head matches between two agents.
 
 ```python
+from lite_holdem_ai import LiteHoldemEnv, MatchRunner
+
+
 runner = MatchRunner(
     env_factory=lambda: LiteHoldemEnv(),
     agents=[agent_a, agent_b],
@@ -253,7 +314,7 @@ result.print_rankings()
 Tournament results can be exported:
 
 ```python
-result.to_csv("results/baseline_tournament.csv")
+result.to_csv("results/bucket_equity_tournament.csv")
 ```
 
 ---
@@ -266,6 +327,8 @@ Implemented:
 * hand evaluator
 * environment wrapper
 * baseline agents
+* exact equity agent
+* bucketed equity agent
 * match evaluation
 * tournament evaluation
 * diagnostic summaries
@@ -275,12 +338,13 @@ Implemented:
 
 Future improvements could include:
 
-* equity-based agent
-* Monte Carlo rollout agent
 * stronger heuristic tuning
+* configurable equity thresholds
 * command-line interface
 * 52-card Hold'em version
 * learning-based agents
+* CFR with abstraction
+* neural equity approximation
 
 ---
 
