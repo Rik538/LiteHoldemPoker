@@ -5,8 +5,8 @@ Created on Sun May 31 14:31:22 2026
 @author: Richard
 """
 
-from lite_holdem_ai import BucketEquityAgent,EquityAgent,AggressiveAgent,HeuristicAgent,PassiveAgent,RandomAgent,TournamentRunner,LiteHoldemEnv
-
+from lite_holdem_ai import TournamentRunner,LiteHoldemEnv
+from lite_holdem_ai.agents import BucketEquityAgent,EquityAgent,AggressiveAgent,HeuristicAgent,PassiveAgent,RandomAgent
 from pathlib import Path
 
 def main():

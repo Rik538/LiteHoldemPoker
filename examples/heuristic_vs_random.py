@@ -5,7 +5,8 @@ Created on Sun May 31 13:44:03 2026
 @author: Richard
 """
 
-from lite_holdem_ai import HeuristicAgent, RandomAgent,MatchRunner,LiteHoldemEnv
+from lite_holdem_ai import MatchRunner,LiteHoldemEnv
+from lite_holdem_ai.agents import HeuristicAgent, RandomAgent
 
 def main():
     

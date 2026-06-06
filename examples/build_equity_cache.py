@@ -18,7 +18,7 @@ def main():
         path=cache_path,
         board_sizes=[0,3,4,5],
         batch_size=100,
-        clear_existing=True,
+        clear_existing=False,
         verbose=True,
     )
 

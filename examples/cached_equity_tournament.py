@@ -6,7 +6,9 @@ Created on Sun May 31 14:31:22 2026
 """
 
 from lite_holdem_ai import TournamentRunner,LiteHoldemEnv
-from lite_holdem_ai.agents import EquityAgent,AggressiveAgent,HeuristicAgent,PassiveAgent,RandomAgent
+from lite_holdem_ai.agents import   BucketEquityAgent,EquityAgent,AggressiveAgent,HeuristicAgent, \
+                                    PassiveAgent,RandomAgent,CachedBucketEquityAgent,\
+                                    CachedEquityAgent
 from pathlib import Path
 
 def main():
@@ -15,8 +17,12 @@ def main():
         PassiveAgent(name="Passive"),
         AggressiveAgent(name="Aggressive"),
         HeuristicAgent(name="Heuristic"),
-        EquityAgent("Equity"),
+        EquityAgent(name="Equity"),
+        BucketEquityAgent(name="Bucket Equity"),
+        CachedBucketEquityAgent(name = "Cached Bucket Equity"),
+        CachedEquityAgent(name = "Cached Equity")
     ]
+
 
     runner = TournamentRunner(
         agents=agents,
@@ -33,7 +39,7 @@ def main():
     result.print_rankings()
     
     Path("results").mkdir(exist_ok=True)
-    result.to_csv("results/equity_tournament.csv")
+    result.to_csv("results/cached_equity_tournament.csv")
 
 
 if __name__ == "__main__":

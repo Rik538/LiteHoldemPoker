@@ -6,7 +6,8 @@ Created on Sun May 31 13:44:03 2026
 """
 
 
-from lite_holdem_ai import MatchRunner,LiteHoldemEnv,RandomAgent
+from lite_holdem_ai import MatchRunner,LiteHoldemEnv 
+from lite_holdem_ai.agents import RandomAgent
 
 
 
