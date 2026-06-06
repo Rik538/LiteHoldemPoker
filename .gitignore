@@ -1,20 +1,50 @@
-__pycache__/
+# Python cache
+
+**pycache**/
 *.py[cod]
+*.pyo
+*.pyd
+
+# Pytest / coverage
+
 .pytest_cache/
 .coverage
 htmlcov/
+
+# Build/package files
 
 build/
 dist/
 *.egg-info/
 
+# Virtual environments
+
 .venv/
 venv/
 env/
+
+# IDE/editor
 
 .vscode/
 .idea/
 .spyder-py3/
 
+# OS files
+
+.DS_Store
+Thumbs.db
+
+# Generated outputs
+
 results/
+
+# Generated equity/cache data
+
+cache/
+*.sqlite
+*.sqlite3
+*.db
+
+# Optional trained/generated artifacts
+
 checkpoints/

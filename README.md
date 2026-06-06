@@ -2,7 +2,7 @@
 
 `lite-holdem-ai` is a Python package for experimenting with agents in a simplified 20-card heads-up Texas Hold'em-style poker game.
 
-The project includes a playable game engine, environment wrapper, baseline agents, equity-based agents, match evaluation, tournament evaluation, CSV export, and diagnostic summaries for comparing agent behaviour.
+The project includes a playable game engine, environment wrapper, baseline agents, exact equity agents, cached equity agents, match evaluation, tournament evaluation, CSV export, and diagnostic summaries for comparing poker agents.
 
 This package is intended as a bridge between small imperfect-information games like Leduc poker and larger poker AI projects.
 
@@ -27,10 +27,16 @@ This package is intended as a bridge between small imperfect-information games l
   * `PassiveAgent`
   * `AggressiveAgent`
   * `HeuristicAgent`
-* Equity-based agents:
+* Exact equity agents:
 
   * `EquityAgent`
   * `BucketEquityAgent`
+* Cached equity agents:
+
+  * `CachedEquityAgent`
+  * `CachedBucketEquityAgent`
+* SQLite equity cache
+* Full equity cache builder
 * Match runner
 * Tournament runner
 * Payoff matrix generation
@@ -57,11 +63,16 @@ LiteHoldemPoker/
 ├── README.md
 ├── .gitignore
 │
+├── cache/
+│   └── equity_cache.sqlite
+│
 ├── examples/
 │   ├── README.md
 │   ├── baseline_tournament.py
 │   ├── equity_tournament.py
 │   ├── bucket_equity_tournament.py
+│   ├── cached_equity_tournament.py
+│   ├── build_equity_cache.py
 │   ├── equity_vs_random.py
 │   ├── random_vs_random.py
 │   └── heuristic_vs_aggressive.py
@@ -70,6 +81,7 @@ LiteHoldemPoker/
 │   └── lite_holdem_ai/
 │       ├── __init__.py
 │       ├── data/
+│       ├── equity/
 │       ├── game/
 │       ├── agents/
 │       └── evaluation/
@@ -94,11 +106,13 @@ Editable mode means changes inside `src/lite_holdem_ai/` are picked up immediate
 
 ## Running tests
 
-Run the full test suite:
+Run the normal test suite:
 
 ```powershell
 py -m pytest
 ```
+
+The normal test suite is designed to be fast and does not rebuild or exhaustively validate the full SQLite cache.
 
 The tests cover:
 
@@ -110,11 +124,60 @@ The tests cover:
 * environment behaviour
 * baseline agents
 * heuristic agent behaviour
-* equity agent behaviour
+* exact equity agent behaviour
 * bucket equity agent behaviour
+* SQLite equity cache behaviour
+* equity cache builder behaviour
+* cached equity agents
 * match running
 * tournament running
 * tournament CSV export
+
+---
+
+## Full equity cache validation
+
+The full equity cache contains every legal combination of:
+
+* private cards
+* public board cards
+* board sizes: preflop, flop, turn, river
+
+For a 20-card deck, the full cache contains:
+
+```text
+Preflop:      190
+Flop:     155,040
+Turn:     581,400
+River:  1,627,920
+Total:  2,364,550
+```
+
+The full cache completeness test is intentionally slow and should be run manually:
+
+```powershell
+$env:RUN_FULL_CACHE_TESTS="1"
+py -m pytest tests\test_cache_completeness.py
+Remove-Item Env:\RUN_FULL_CACHE_TESTS
+```
+
+---
+
+## Building the equity cache
+
+To build the SQLite equity cache:
+
+```powershell
+py examples\build_equity_cache.py
+```
+
+The cache is written to:
+
+```text
+cache/equity_cache.sqlite
+```
+
+The cache is generated data and is ignored by Git by default.
 
 ---
 
@@ -161,7 +224,7 @@ Each table entry is the average payoff for the row agent against the column agen
 
 ## Running an equity tournament
 
-To compare the equity-based agent against the baseline agents:
+To compare the exact equity-based agent against the baseline agents:
 
 ```powershell
 py examples\equity_tournament.py
@@ -175,13 +238,13 @@ This usually includes:
 * Heuristic
 * Equity
 
-The `EquityAgent` estimates exact equity from the current private cards and public board. Preflop equity is loaded from a cached lookup table.
+The `EquityAgent` calculates exact equity from the current private cards and public board. Preflop equity can use a cached lookup table, while later streets can be calculated by enumeration.
 
 ---
 
 ## Running a bucket equity tournament
 
-To compare the bucketed equity agent against all current agents:
+To compare the bucketed equity agent:
 
 ```powershell
 py examples\bucket_equity_tournament.py
@@ -196,7 +259,7 @@ This usually includes:
 * Equity
 * Bucket Equity
 
-The `BucketEquityAgent` uses the same equity calculation as `EquityAgent`, but maps equity into coarse buckets before choosing an action:
+The `BucketEquityAgent` uses exact equity, then maps equity into coarse buckets before choosing an action:
 
 ```text
 0 = trash
@@ -206,7 +269,30 @@ The `BucketEquityAgent` uses the same equity calculation as `EquityAgent`, but m
 4 = premium
 ```
 
-This makes it easier to compare smooth equity-based decisions against simpler rule-based equity bands.
+---
+
+## Running a cached equity tournament
+
+To compare cached and non-cached equity agents:
+
+```powershell
+py examples\cached_equity_tournament.py
+```
+
+This usually includes:
+
+* Random
+* Passive
+* Aggressive
+* Heuristic
+* Equity
+* Bucket Equity
+* Cached Equity
+* Cached Bucket Equity
+
+The cached agents use the SQLite cache instead of calculating equity during gameplay.
+
+This makes match and tournament evaluation much faster once the cache has been built.
 
 ---
 
@@ -266,13 +352,56 @@ The heuristic is not exact equity. It is a fast rule-based baseline.
 
 Calculates exact hand equity against all possible opponent hands and future boards.
 
-For preflop decisions, it uses a cached lookup table. For flop, turn, and river decisions, it enumerates remaining possibilities directly.
+This is useful as a reference implementation, but it can be slower than cached lookup.
 
 ### BucketEquityAgent
 
-Reuses the equity calculation from `EquityAgent`, then converts equity into a discrete bucket before acting.
+Reuses exact equity calculation, then converts equity into a discrete bucket before acting.
 
 This gives a simpler and more interpretable strategy than continuous equity thresholds.
+
+### CachedEquityAgent
+
+Looks up exact equity from the SQLite cache instead of calculating it during gameplay.
+
+This is the preferred fast equity-based agent once the full cache has been built.
+
+### CachedBucketEquityAgent
+
+Looks up both equity and bucket values from the SQLite cache.
+
+This is the preferred fast bucketed equity agent once the full cache has been built.
+
+---
+
+## Equity cache tools
+
+### EquityCache
+
+SQLite-backed storage for equity results.
+
+Each record stores:
+
+* private card key
+* public board key
+* board size
+* equity
+* bucket
+* wins
+* losses
+* splits
+* total scenarios
+
+### EquityCacheBuilder
+
+Builds exact equity records for:
+
+* preflop
+* flop
+* turn
+* river
+
+The full build is expensive but only needs to be done once.
 
 ---
 
@@ -314,7 +443,7 @@ result.print_rankings()
 Tournament results can be exported:
 
 ```python
-result.to_csv("results/bucket_equity_tournament.csv")
+result.to_csv("results/cached_equity_tournament.csv")
 ```
 
 ---
@@ -329,6 +458,10 @@ Implemented:
 * baseline agents
 * exact equity agent
 * bucketed equity agent
+* SQLite equity cache
+* full equity cache builder
+* cached equity agent
+* cached bucket equity agent
 * match evaluation
 * tournament evaluation
 * diagnostic summaries
