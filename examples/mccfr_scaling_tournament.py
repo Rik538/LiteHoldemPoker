@@ -32,6 +32,7 @@ def main():
                         Path("checkpoints") / "lite_holdem_mccfr_1k.pkl",
                         Path("checkpoints") / "lite_holdem_mccfr_10k.pkl",
                         Path("checkpoints") / "lite_holdem_mccfr_100k.pkl",
+                        Path("checkpoints") / "lite_holdem_optimised_mccfr_10k.pkl",
                         ]
     
     for checkpoint_path in checkpoint_paths:
@@ -96,6 +97,15 @@ def main():
             name=f"MCCFR {trainer.iterations_trained}",
             seed=1,
         )
+        
+        trainer.load_checkpoint(checkpoint_paths[4])
+
+        mccfr_opt_agent10k = CFRAgent(
+            nodes=trainer.nodes,
+            infoset_builder=infoset_builder,
+            name=f"Optimised MCCFR {trainer.iterations_trained}",
+            seed=1,
+        )
 
         agents = [
             HeuristicAgent(name="Heuristic"),
@@ -105,6 +115,7 @@ def main():
             mccfr_agent1k,
             mccfr_agent10k,
             mccfr_agent100k,
+            mccfr_opt_agent10k,
         ]
 
         runner = TournamentRunner(
@@ -129,6 +140,7 @@ def main():
         print(f"{mccfr_agent1k.name} missing nodes: {mccfr_agent1k.missing_nodes}")
         print(f"{mccfr_agent10k.name} missing nodes: {mccfr_agent10k.missing_nodes}")
         print(f"{mccfr_agent100k.name} missing nodes: {mccfr_agent100k.missing_nodes}")
+        print(f"{mccfr_opt_agent10k.name} missing nodes: {mccfr_opt_agent10k.missing_nodes}")
 
         # Close cached agents' database connections.
         for agent in agents:

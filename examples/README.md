@@ -224,6 +224,66 @@ results/cfr_tournament.csv
 
 ---
 
+## `train_mccfr.py`
+
+Trains an external-sampling MCCFR checkpoint.
+
+```powershell
+py examples\train_mccfr.py
+```
+
+This uses:
+
+* SQLite equity cache
+* `CachedEquityBucketProvider`
+* `MemoizedBucketProvider`
+* `EquityBucketInfosetKeyBuilder`
+* `MCCFRTrainer`
+
+The memoised bucket provider reduces repeated SQLite lookups during training.
+
+The checkpoint is usually written to:
+
+```text
+checkpoints/lite_holdem_mccfr_*.pkl
+```
+
+Checkpoints are generated files and are ignored by Git by default.
+
+---
+
+## `mccfr_tournament.py`
+
+Runs a tournament including trained MCCFR agents.
+
+Typical agents:
+
+* Heuristic
+* Cached Equity
+* Cached Bucket
+* CFR
+* MCCFR
+
+```powershell
+py examples\mccfr_tournament.py
+```
+
+This is the main external-sampling MCCFR benchmark example.
+
+It prints:
+
+* payoff matrix
+* rankings
+* missing-node counts for CFR/MCCFR agents
+
+The result is usually exported to:
+
+```text
+results/mccfr_tournament.csv
+```
+
+---
+
 ## `heuristic_vs_aggressive.py`
 
 Runs a detailed match between the heuristic agent and aggressive agent.
@@ -270,6 +330,13 @@ py examples\cfr_vs_random.py
 py examples\cfr_tournament.py
 ```
 
+For MCCFR:
+
+```powershell
+py examples\train_mccfr.py
+py examples\mccfr_tournament.py
+```
+
 ---
 
 ## Full cache validation
@@ -298,4 +365,4 @@ Generated CSV files are written to the `results/` folder.
 
 Generated SQLite cache files are written to the `cache/` folder.
 
-Generated CFR checkpoints are written to the `checkpoints/` folder.
+Generated CFR/MCCFR checkpoints are written to the `checkpoints/` folder.

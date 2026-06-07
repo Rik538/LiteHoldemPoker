@@ -16,12 +16,16 @@ from lite_holdem_ai.cfr.mccfr_trainer import MCCFRTrainer
 from lite_holdem_ai.equity.cache import EquityCache
 from lite_holdem_ai.game.environment import LiteHoldemEnv
 
+import time
+
 
 def main():
+    
+    trainer_stats = {}
+    
+    
     cache_path = Path("cache") / "equity_cache.sqlite"
-    checkpoint_path = Path("checkpoints") / "lite_holdem_optimised_mccfr_10k.pkl"
-
-    checkpoint_path.parent.mkdir(exist_ok=True)
+  
 
     if not cache_path.exists():
         raise FileNotFoundError(
@@ -29,6 +33,35 @@ def main():
             "Run py examples\\build_equity_cache.py first."
         )
 
+    with EquityCache(cache_path) as equity_cache:
+        bucket_provider = CachedEquityBucketProvider(equity_cache)
+        infoset_builder = EquityBucketInfosetKeyBuilder(bucket_provider)
+
+        trainer = MCCFRTrainer(
+            infoset_builder=infoset_builder,
+            env_factory=lambda: LiteHoldemEnv(),
+        )
+        
+        start = time.perf_counter()
+
+        trainer.train(
+            iterations=1_000,
+            path=None,
+            save_every=None,
+            print_every=1_000,
+            update_both_players=True,
+        )
+        
+        elapsedMCCFR = time.perf_counter() - start
+        trainer_stats["Base MCCFR"] = elapsedMCCFR
+        
+
+        print()
+        print("Training complete.")
+
+
+
+            
     with EquityCache(cache_path) as equity_cache:
         raw_bucket_provider = CachedEquityBucketProvider(equity_cache)
         bucket_provider = MemoizedBucketProvider(raw_bucket_provider)
@@ -38,27 +71,34 @@ def main():
             infoset_builder=infoset_builder,
             env_factory=lambda: LiteHoldemEnv(),
         )
+        
+        start = time.perf_counter()
 
         trainer.train(
-            iterations=10_000,
-            path=checkpoint_path,
-            save_every=10_000,
+            iterations=1_000,
+            path=None,
+            save_every=None,
             print_every=1_000,
             update_both_players=True,
         )
-
-        trainer.save_checkpoint(checkpoint_path)
+        
+        
+        elapsedMCCFR = time.perf_counter() - start
+        trainer_stats["Memoized MCCFR"] = elapsedMCCFR
+        
 
         print()
         print("Training complete.")
-        print(f"Iterations trained: {trainer.iterations_trained}")
-        print(f"Infosets: {len(trainer.nodes)}")
-        print(f"Saved checkpoint to: {checkpoint_path}")
 
-        print()
-        print("Sample strategies:")
-        trainer.print_strategies(limit=10)
 
+    for trainer in trainer_stats.keys():
+        
+        elapsed = trainer_stats[trainer]
+        print(f"Trainer: {trainer}")
+        print(f"Elapsed: {elapsed:.2f}s")
+        print(f"Iterations/sec: {1000 / elapsed:.2f}")
+        
+        
 
 if __name__ == "__main__":
     main()

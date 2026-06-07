@@ -200,27 +200,29 @@ class MCCFRTrainer:
         traversals = 0
 
         for iteration in range(1, iterations + 1):
+            env = self.env_factory()
+            env.reset()
+            initial_state = env.state
+        
             if update_both_players:
                 traversers = [0, 1]
             else:
                 traversers = [iteration % 2]
-
+        
             for traverser in traversers:
-                env = self.env_factory()
-                env.reset()
-                state = env.state
-
+                state = initial_state.clone()
+        
                 utility = self.external_sampling_cfr(
                     state=state,
                     traverser=traverser,
                     reach_traverser=1.0,
                     reach_opponent=1.0,
                 )
-
+        
                 utility_sum += utility
                 utility_window += utility
                 traversals += 1
-
+        
             self.iterations_trained += 1
 
             if print_every is not None and iteration % print_every == 0:

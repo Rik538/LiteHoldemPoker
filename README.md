@@ -2,7 +2,7 @@
 
 `lite-holdem-ai` is a Python package for experimenting with agents in a simplified 20-card heads-up Texas Hold'em-style poker game.
 
-The project includes a playable game engine, environment wrapper, baseline agents, equity-based agents, cached equity agents, bucketed CFR training, match evaluation, tournament evaluation, CSV export, and diagnostic summaries for comparing poker agents.
+The project includes a playable game engine, environment wrapper, baseline agents, equity-based agents, cached equity agents, bucketed CFR, external-sampling MCCFR, match evaluation, tournament evaluation, CSV export, and diagnostic summaries for comparing poker agents.
 
 This package is intended as a bridge between small imperfect-information games like Leduc poker and larger poker AI projects.
 
@@ -38,6 +38,7 @@ This package is intended as a bridge between small imperfect-information games l
 * SQLite equity cache
 * Full equity cache builder
 * Bucketed CFR trainer
+* External-sampling MCCFR trainer
 * CFR playing agent
 * Match runner
 * Tournament runner
@@ -69,7 +70,8 @@ LiteHoldemPoker/
 │   └── equity_cache.sqlite
 │
 ├── checkpoints/
-│   └── lite_holdem_cfr_*.pkl
+│   ├── lite_holdem_cfr_*.pkl
+│   └── lite_holdem_mccfr_*.pkl
 │
 ├── examples/
 │   ├── README.md
@@ -81,6 +83,8 @@ LiteHoldemPoker/
 │   ├── train_cfr.py
 │   ├── cfr_vs_random.py
 │   ├── cfr_tournament.py
+│   ├── train_mccfr.py
+│   ├── mccfr_tournament.py
 │   ├── equity_vs_random.py
 │   ├── random_vs_random.py
 │   └── heuristic_vs_aggressive.py
@@ -142,6 +146,7 @@ The tests cover:
 * CFR nodes
 * CFR trainer
 * CFR agent
+* external-sampling MCCFR trainer
 * match running
 * tournament running
 * CSV export
@@ -233,7 +238,7 @@ Each table entry is the average payoff for the row agent against the column agen
 
 ---
 
-## Running an equity tournament
+## Running equity tournaments
 
 To compare the exact equity-based agent against the baseline agents:
 
@@ -241,65 +246,17 @@ To compare the exact equity-based agent against the baseline agents:
 py examples\equity_tournament.py
 ```
 
-This usually includes:
-
-* Random
-* Passive
-* Aggressive
-* Heuristic
-* Equity
-
-The `EquityAgent` calculates exact equity from the current private cards and public board. This is useful as a reference implementation, but it is slower than cached lookup.
-
----
-
-## Running a bucket equity tournament
-
 To compare the bucketed equity agent:
 
 ```powershell
 py examples\bucket_equity_tournament.py
 ```
 
-This usually includes:
-
-* Random
-* Passive
-* Aggressive
-* Heuristic
-* Equity
-* Bucket Equity
-
-The `BucketEquityAgent` uses exact equity, then maps equity into coarse buckets before choosing an action:
-
-```text
-0 = trash
-1 = weak
-2 = medium
-3 = strong
-4 = premium
-```
-
----
-
-## Running a cached equity tournament
-
 To compare cached and non-cached equity agents:
 
 ```powershell
 py examples\cached_equity_tournament.py
 ```
-
-This usually includes:
-
-* Random
-* Passive
-* Aggressive
-* Heuristic
-* Equity
-* Bucket Equity
-* Cached Equity
-* Cached Bucket Equity
 
 The cached agents use the SQLite cache instead of calculating equity during gameplay.
 
@@ -337,7 +294,37 @@ Checkpoints are generated data and are ignored by Git by default.
 
 ---
 
-## Evaluating CFR
+## Training external-sampling MCCFR
+
+This project also includes an external-sampling MCCFR trainer.
+
+External-sampling MCCFR is faster than the full CFR trainer because:
+
+* the traversing player explores all legal actions
+* opponent actions are sampled
+* initial deals are sampled
+* bucket lookups can be memoised in memory
+
+To train an MCCFR checkpoint:
+
+```powershell
+py examples\train_mccfr.py
+```
+
+The MCCFR trainer uses the same infoset abstraction as the normal CFR trainer, so the resulting checkpoint can be played by the same `CFRAgent`.
+
+The recommended training setup uses:
+
+* `CachedEquityBucketProvider`
+* `MemoizedBucketProvider`
+* `EquityBucketInfosetKeyBuilder`
+* `MCCFRTrainer`
+
+The memoised bucket provider avoids repeated SQLite lookups during training and gives a significant training speedup.
+
+---
+
+## Evaluating CFR and MCCFR
 
 To run CFR against a random agent:
 
@@ -351,17 +338,21 @@ To run a tournament including CFR:
 py examples\cfr_tournament.py
 ```
 
-Typical agents in the CFR tournament:
+To run a tournament including MCCFR:
 
-* Random
-* Passive
-* Aggressive
+```powershell
+py examples\mccfr_tournament.py
+```
+
+Typical agents in the CFR/MCCFR tournaments:
+
 * Heuristic
 * Cached Equity
 * Cached Bucket
 * CFR
+* MCCFR
 
-CFR checkpoints are trained using the same shared infoset builder that the CFR playing agent uses. This ensures that the key used during training matches the key used during play.
+CFR and MCCFR checkpoints are trained using the same shared infoset builder that the CFR playing agent uses. This ensures that the key used during training matches the key used during play.
 
 ---
 
@@ -420,7 +411,7 @@ This is the preferred fast bucketed equity agent once the full cache has been bu
 
 ### CFRAgent
 
-Uses average strategies learned by `CFRTrainer`.
+Uses average strategies learned by `CFRTrainer` or `MCCFRTrainer`.
 
 The CFR agent uses the same infoset key builder as the trainer, so trained strategies and runtime decisions remain aligned.
 
@@ -473,13 +464,27 @@ Shared abstraction layer for CFR training and CFR playing.
 
 The current implementation is `EquityBucketInfosetKeyBuilder`.
 
+### CachedEquityBucketProvider
+
+Gets equity buckets from the SQLite equity cache.
+
+### MemoizedBucketProvider
+
+Wraps another bucket provider and caches bucket lookups in memory.
+
+This is useful for CFR and MCCFR training because infoset generation calls `get_bucket()` very frequently.
+
 ### CFRTrainer
 
 Trains a bucketed CFR strategy using sampled deals and the shared infoset abstraction.
 
+### MCCFRTrainer
+
+Trains a bucketed strategy using external-sampling MCCFR.
+
 ### CFRAgent
 
-Plays from trained CFR nodes using average strategy.
+Plays from trained CFR/MCCFR nodes using average strategy.
 
 ---
 
@@ -521,7 +526,7 @@ result.print_rankings()
 Tournament results can be exported:
 
 ```python
-result.to_csv("results/cfr_tournament.csv")
+result.to_csv("results/mccfr_tournament.csv")
 ```
 
 ---
@@ -541,7 +546,8 @@ Implemented:
 * cached equity agent
 * cached bucket equity agent
 * bucketed CFR trainer
-* CFR playing agent
+* external-sampling MCCFR trainer
+* CFR/MCCFR playing agent
 * match evaluation
 * tournament evaluation
 * diagnostic summaries
@@ -551,7 +557,6 @@ Implemented:
 
 Future improvements could include:
 
-* external-sampling MCCFR
 * stronger CFR abstraction
 * pot-size bucket features
 * best-response / exploitability estimates

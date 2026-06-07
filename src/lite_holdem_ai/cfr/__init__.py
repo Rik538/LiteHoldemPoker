@@ -14,6 +14,7 @@ from lite_holdem_ai.cfr.infoset import (
     CachedEquityBucketProvider,
     EquityBucketInfosetKeyBuilder,
     InfosetKeyBuilder,
+    MemoizedBucketProvider,
 )
 from lite_holdem_ai.cfr.node import (
     ACTION_INDEX,
@@ -36,4 +37,5 @@ __all__ = [
     "InfosetKeyBuilder",
     "EquityBucketInfosetKeyBuilder",
     "CachedEquityBucketProvider",
+    "MemoizedBucketProvider"
 ]

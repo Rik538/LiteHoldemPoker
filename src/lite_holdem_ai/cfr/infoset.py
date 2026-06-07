@@ -113,6 +113,54 @@ class CachedEquityBucketProvider:
         result = self.equity_cache.get(private_cards, public_cards)
         return result["bucket"]  
     
+class MemoizedBucketProvider:
+    """
+    Wraps another bucket provider and caches bucket lookups in memory.
+
+    This is useful for CFR/MCCFR because infoset generation calls get_bucket()
+    very frequently.
+    """
+
+    def __init__(self, bucket_provider):
+        self.bucket_provider = bucket_provider
+        self.cache = {}
+        self.hits = 0
+        self.misses = 0
+
+    def make_key(self, private_cards, public_cards):
+        return (
+            tuple(sorted(private_cards)),
+            tuple(sorted(public_cards)),
+        )
+
+    def get_bucket(self, private_cards, public_cards):
+        key = self.make_key(private_cards, public_cards)
+
+        if key in self.cache:
+            self.hits += 1
+            return self.cache[key]
+
+        self.misses += 1
+        bucket = self.bucket_provider.get_bucket(private_cards, public_cards)
+        self.cache[key] = bucket
+
+        return bucket
+
+    def stats(self):
+        total = self.hits + self.misses
+
+        if total == 0:
+            hit_rate = 0.0
+        else:
+            hit_rate = self.hits / total
+
+        return {
+            "entries": len(self.cache),
+            "hits": self.hits,
+            "misses": self.misses,
+            "hit_rate": hit_rate,
+        }
+    
     
     
     
