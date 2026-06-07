@@ -48,9 +48,10 @@ class GameState:
     
     hand_number: int = 0
     
-    def __post_init__(self):
-        self.MAX_RAISES_PER_ROUND = 2
-        self.showdown = Showdown()
+    MAX_RAISES_PER_ROUND = 2
+    showdown = Showdown()
+    
+
 
     def reset_hand(self):
         self.deck.reset_deck()
@@ -253,8 +254,8 @@ class GameState:
         self.payoffs[0] = (-pot/2) + p0
         self.payoffs[1] = (-pot/2) + p1
         
-    def get_observation(self,player):
-        obs = {
+    def get_observation(self, player):
+        return {
             "private_cards": self.player_cards[player].copy(),
             "public_cards": self.public_cards.copy(),
             "street": self.street,
@@ -262,17 +263,47 @@ class GameState:
             "player_contributions": self.player_contributions.copy(),
             "round_bets": self.round_bets.copy(),
             "current_player": self.current_player,
-            "action_history": self.action_history.copy(),
-            "legal_actions": self.legal_actions() if player == self.current_player else [],
+            "button_player": self.button_player,
+            "legal_actions": self.legal_actions(),
             "amount_to_call": self.amount_to_call(player),
             "raises_this_round": self.raises_this_round,
-            "button_player": self.button_player
+            "actions_this_round": self.actions_this_round.copy(),
+            "action_history": self.action_history.copy(),
         }
 
-        return obs
     
     def clone(self):
-        return copy.deepcopy(self)
+        new_state = GameState.__new__(GameState)
+    
+        new_state.deck = self.deck.clone()
+    
+        new_state.player_cards = [
+            self.player_cards[0].copy(),
+            self.player_cards[1].copy(),
+        ]
+    
+        new_state.public_cards = self.public_cards.copy()
+    
+        new_state.pot = self.pot
+        new_state.player_contributions = self.player_contributions.copy()
+        new_state.current_player = self.current_player
+        new_state.street = self.street
+        new_state.round_bets = self.round_bets.copy()
+    
+        new_state.terminal = self.terminal
+        new_state.folded_player = self.folded_player
+    
+        new_state.action_history = self.action_history.copy()
+        new_state.raises_this_round = self.raises_this_round
+        new_state.actions_this_round = self.actions_this_round.copy()
+        new_state.payoffs = self.payoffs.copy()
+    
+        new_state.button_player = self.button_player
+        new_state.small_blind = self.small_blind
+        new_state.big_blind = self.big_blind
+        new_state.hand_number = self.hand_number
+    
+        return new_state
         
 
         
