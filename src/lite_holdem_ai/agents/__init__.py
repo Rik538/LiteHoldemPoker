@@ -17,6 +17,8 @@ from lite_holdem_ai.agents.equity_agent import EquityAgent
 from lite_holdem_ai.agents.bucket_equity_agent import BucketEquityAgent
 from lite_holdem_ai.agents.cached_bucket_equity_agent import CachedBucketEquityAgent
 from lite_holdem_ai.agents.cached_equity_agent import CachedEquityAgent
+from lite_holdem_ai.cfr.agent import CFRAgent
+
 
 __all__ = [
     "RandomAgent",
@@ -27,4 +29,5 @@ __all__ = [
     "BucketEquityAgent",
     "CachedBucketEquityAgent",
     "CachedEquityAgent",
+    "CFRAgent"
 ]
