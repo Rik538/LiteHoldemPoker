@@ -30,6 +30,7 @@ from lite_holdem_ai.cfr.mccfr_trainer import MCCFRTrainer
 # Evaluation
 from lite_holdem_ai.evaluation.match import MatchRunner
 from lite_holdem_ai.evaluation.tournament import TournamentRunner
+from lite_holdem_ai.evaluation.repeated import RepeatedTournamentRunner
 
 # Equity cache tools
 from lite_holdem_ai.equity.cache import EquityCache
@@ -56,6 +57,7 @@ __all__ = [
     # Evaluation
     "MatchRunner",
     "TournamentRunner",
+    "RepeatedTournamentRunner",
     # Equity cache
     "EquityCache",
     "EquityCacheBuilder",
