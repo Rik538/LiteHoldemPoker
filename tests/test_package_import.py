@@ -10,6 +10,6 @@ import lite_holdem_ai
 
 
 def test_package_imports():
-    assert lite_holdem_ai.__version__ == "0.6.0"
+    assert lite_holdem_ai.__version__ == "0.7.0"
     
     
