@@ -25,6 +25,7 @@ from lite_holdem_ai.agents.cached_bucket_equity_agent import CachedBucketEquityA
 # CFR
 from lite_holdem_ai.cfr.agent import CFRAgent
 from lite_holdem_ai.cfr.trainer import CFRTrainer
+from lite_holdem_ai.cfr.mccfr_trainer import MCCFRTrainer
 
 # Evaluation
 from lite_holdem_ai.evaluation.match import MatchRunner
@@ -51,6 +52,7 @@ __all__ = [
     # CFR
     "CFRAgent",
     "CFRTrainer",
+    "MCCFRTrainer",
     # Evaluation
     "MatchRunner",
     "TournamentRunner",

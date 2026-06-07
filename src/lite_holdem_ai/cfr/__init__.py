@@ -22,6 +22,7 @@ from lite_holdem_ai.cfr.node import (
     CFRNode,
 )
 from lite_holdem_ai.cfr.trainer import CFRTrainer
+from lite_holdem_ai.cfr.mccfr_trainer import MCCFRTrainer
 
 
 __all__ = [
@@ -30,6 +31,7 @@ __all__ = [
     "NUM_ACTIONS",
     "CFRNode",
     "CFRTrainer",
+    "MCCFRTrainer",
     "CFRAgent",
     "InfosetKeyBuilder",
     "EquityBucketInfosetKeyBuilder",
