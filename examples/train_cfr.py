@@ -18,7 +18,7 @@ from lite_holdem_ai.game.environment import LiteHoldemEnv
 
 def main():
     cache_path = Path("cache") / "equity_cache.sqlite"
-    checkpoint_path = Path("checkpoints") / "lite_holdem_cfr_1k.pkl"
+    checkpoint_path = Path("checkpoints") / "lite_holdem_cfr_10k.pkl"
 
     checkpoint_path.parent.mkdir(exist_ok=True)
 
@@ -38,7 +38,7 @@ def main():
         )
 
         trainer.train(
-            iterations=1000,
+            iterations=10000,
             path=checkpoint_path,
             load_checkpoint=False,
         )
