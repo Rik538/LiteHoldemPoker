@@ -2,7 +2,7 @@
 
 `lite-holdem-ai` is a Python package for experimenting with agents in a simplified 20-card heads-up Texas Hold'em-style poker game.
 
-The project includes a playable game engine, environment wrapper, baseline agents, exact equity agents, cached equity agents, match evaluation, tournament evaluation, CSV export, and diagnostic summaries for comparing poker agents.
+The project includes a playable game engine, environment wrapper, baseline agents, equity-based agents, cached equity agents, bucketed CFR training, match evaluation, tournament evaluation, CSV export, and diagnostic summaries for comparing poker agents.
 
 This package is intended as a bridge between small imperfect-information games like Leduc poker and larger poker AI projects.
 
@@ -37,6 +37,8 @@ This package is intended as a bridge between small imperfect-information games l
   * `CachedBucketEquityAgent`
 * SQLite equity cache
 * Full equity cache builder
+* Bucketed CFR trainer
+* CFR playing agent
 * Match runner
 * Tournament runner
 * Payoff matrix generation
@@ -66,6 +68,9 @@ LiteHoldemPoker/
 ├── cache/
 │   └── equity_cache.sqlite
 │
+├── checkpoints/
+│   └── lite_holdem_cfr_*.pkl
+│
 ├── examples/
 │   ├── README.md
 │   ├── baseline_tournament.py
@@ -73,6 +78,9 @@ LiteHoldemPoker/
 │   ├── bucket_equity_tournament.py
 │   ├── cached_equity_tournament.py
 │   ├── build_equity_cache.py
+│   ├── train_cfr.py
+│   ├── cfr_vs_random.py
+│   ├── cfr_tournament.py
 │   ├── equity_vs_random.py
 │   ├── random_vs_random.py
 │   └── heuristic_vs_aggressive.py
@@ -80,11 +88,12 @@ LiteHoldemPoker/
 ├── src/
 │   └── lite_holdem_ai/
 │       ├── __init__.py
+│       ├── agents/
+│       ├── cfr/
 │       ├── data/
 │       ├── equity/
-│       ├── game/
-│       ├── agents/
-│       └── evaluation/
+│       ├── evaluation/
+│       └── game/
 │
 ├── tests/
 └── results/
@@ -112,7 +121,7 @@ Run the normal test suite:
 py -m pytest
 ```
 
-The normal test suite is designed to be fast and does not rebuild or exhaustively validate the full SQLite cache.
+The normal test suite is designed to be fast. It does not rebuild the full SQLite equity cache or run the slow exhaustive cache completeness check unless explicitly enabled.
 
 The tests cover:
 
@@ -124,14 +133,18 @@ The tests cover:
 * environment behaviour
 * baseline agents
 * heuristic agent behaviour
-* exact equity agent behaviour
-* bucket equity agent behaviour
+* exact equity agents
+* bucket equity agents
 * SQLite equity cache behaviour
 * equity cache builder behaviour
 * cached equity agents
+* CFR infoset key building
+* CFR nodes
+* CFR trainer
+* CFR agent
 * match running
 * tournament running
-* tournament CSV export
+* CSV export
 
 ---
 
@@ -216,8 +229,6 @@ This runs a tournament between:
 * Aggressive
 * Heuristic
 
-The output includes a payoff matrix and agent rankings.
-
 Each table entry is the average payoff for the row agent against the column agent.
 
 ---
@@ -238,7 +249,7 @@ This usually includes:
 * Heuristic
 * Equity
 
-The `EquityAgent` calculates exact equity from the current private cards and public board. Preflop equity can use a cached lookup table, while later streets can be calculated by enumeration.
+The `EquityAgent` calculates exact equity from the current private cards and public board. This is useful as a reference implementation, but it is slower than cached lookup.
 
 ---
 
@@ -292,30 +303,65 @@ This usually includes:
 
 The cached agents use the SQLite cache instead of calculating equity during gameplay.
 
-This makes match and tournament evaluation much faster once the cache has been built.
+---
+
+## Training CFR
+
+This project includes a bucketed CFR trainer using an equity-bucket information set abstraction.
+
+The current CFR infoset key contains:
+
+```text
+player
+street
+equity bucket
+position
+facing-bet flag
+raises this round
+street betting history
+```
+
+To train a small CFR checkpoint:
+
+```powershell
+py examples\train_cfr.py
+```
+
+The checkpoint is written to:
+
+```text
+checkpoints/lite_holdem_cfr_1k.pkl
+```
+
+Checkpoints are generated data and are ignored by Git by default.
 
 ---
 
-## Running a detailed match
+## Evaluating CFR
 
-For a detailed head-to-head summary:
+To run CFR against a random agent:
 
 ```powershell
-py examples\heuristic_vs_aggressive.py
+py examples\cfr_vs_random.py
 ```
 
-This prints diagnostics such as:
+To run a tournament including CFR:
 
-* total payoff
-* average payoff
-* standard error
-* 95% confidence interval
-* fold/showdown rates
-* terminal street counts
-* average pot sizes
-* agent aggression rates
-* action counts by street
-* action counts by agent
+```powershell
+py examples\cfr_tournament.py
+```
+
+Typical agents in the CFR tournament:
+
+* Random
+* Passive
+* Aggressive
+* Heuristic
+* Cached Equity
+* Cached Bucket
+* CFR
+
+CFR checkpoints are trained using the same shared infoset builder that the CFR playing agent uses. This ensures that the key used during training matches the key used during play.
 
 ---
 
@@ -372,6 +418,12 @@ Looks up both equity and bucket values from the SQLite cache.
 
 This is the preferred fast bucketed equity agent once the full cache has been built.
 
+### CFRAgent
+
+Uses average strategies learned by `CFRTrainer`.
+
+The CFR agent uses the same infoset key builder as the trainer, so trained strategies and runtime decisions remain aligned.
+
 ---
 
 ## Equity cache tools
@@ -402,6 +454,32 @@ Builds exact equity records for:
 * river
 
 The full build is expensive but only needs to be done once.
+
+---
+
+## CFR tools
+
+### CFRNode
+
+Stores cumulative regrets and cumulative strategy sums for the fixed action set:
+
+* `FOLD`
+* `CHECK_CALL`
+* `BET_RAISE`
+
+### InfosetKeyBuilder
+
+Shared abstraction layer for CFR training and CFR playing.
+
+The current implementation is `EquityBucketInfosetKeyBuilder`.
+
+### CFRTrainer
+
+Trains a bucketed CFR strategy using sampled deals and the shared infoset abstraction.
+
+### CFRAgent
+
+Plays from trained CFR nodes using average strategy.
 
 ---
 
@@ -443,7 +521,7 @@ result.print_rankings()
 Tournament results can be exported:
 
 ```python
-result.to_csv("results/cached_equity_tournament.csv")
+result.to_csv("results/cfr_tournament.csv")
 ```
 
 ---
@@ -462,6 +540,8 @@ Implemented:
 * full equity cache builder
 * cached equity agent
 * cached bucket equity agent
+* bucketed CFR trainer
+* CFR playing agent
 * match evaluation
 * tournament evaluation
 * diagnostic summaries
@@ -471,12 +551,14 @@ Implemented:
 
 Future improvements could include:
 
-* stronger heuristic tuning
+* external-sampling MCCFR
+* stronger CFR abstraction
+* pot-size bucket features
+* best-response / exploitability estimates
 * configurable equity thresholds
 * command-line interface
 * 52-card Hold'em version
 * learning-based agents
-* CFR with abstraction
 * neural equity approximation
 
 ---

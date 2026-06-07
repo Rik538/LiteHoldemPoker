@@ -10,6 +10,18 @@ py examples\<script_name>.py
 
 ---
 
+## `random_vs_random.py`
+
+Runs a simple random-vs-random match.
+
+Useful as a smoke test that the game engine, environment, agents, and match runner are working.
+
+```powershell
+py examples\random_vs_random.py
+```
+
+---
+
 ## `baseline_tournament.py`
 
 Runs a tournament between the baseline agents:
@@ -24,6 +36,18 @@ It prints a payoff matrix and rankings.
 ```powershell
 py examples\baseline_tournament.py
 ```
+
+---
+
+## `equity_vs_random.py`
+
+Runs a detailed match between the exact equity agent and a random agent.
+
+```powershell
+py examples\equity_vs_random.py
+```
+
+Useful as a quick check that the equity agent is working and making sensible decisions.
 
 ---
 
@@ -68,37 +92,6 @@ This compares continuous equity-threshold decisions against bucketed equity deci
 
 ---
 
-## `cached_equity_tournament.py`
-
-Runs a tournament including the cached equity agents.
-
-Typical agents:
-
-* Random
-* Passive
-* Aggressive
-* Heuristic
-* Equity
-* Bucket Equity
-* Cached Equity
-* Cached Bucket Equity
-
-```powershell
-py examples\cached_equity_tournament.py
-```
-
-This is the main v0.4.0 benchmark.
-
-It compares the original exact-calculation equity agents against the SQLite cached equity agents.
-
-The result is usually exported to:
-
-```text
-results/cached_equity_tournament.csv
-```
-
----
-
 ## `build_equity_cache.py`
 
 Builds the SQLite equity cache used by the cached agents.
@@ -124,26 +117,109 @@ The full build can take a long time, but only needs to be run when rebuilding th
 
 ---
 
-## `equity_vs_random.py`
+## `cached_equity_tournament.py`
 
-Runs a detailed match between the exact equity agent and a random agent.
+Runs a tournament including the cached equity agents.
+
+Typical agents:
+
+* Random
+* Passive
+* Aggressive
+* Heuristic
+* Equity
+* Bucket Equity
+* Cached Equity
+* Cached Bucket Equity
 
 ```powershell
-py examples\equity_vs_random.py
+py examples\cached_equity_tournament.py
 ```
 
-Useful as a quick check that the equity agent is working and making sensible decisions.
+This compares the original exact-calculation equity agents against the SQLite cached equity agents.
+
+The result is usually exported to:
+
+```text
+results/cached_equity_tournament.csv
+```
 
 ---
 
-## `random_vs_random.py`
+## `train_cfr.py`
 
-Runs a simple random-vs-random match.
-
-Useful as a smoke test that the game engine, environment, agents, and match runner are working.
+Trains a small bucketed CFR checkpoint.
 
 ```powershell
-py examples\random_vs_random.py
+py examples\train_cfr.py
+```
+
+This uses:
+
+* SQLite equity cache
+* `CachedEquityBucketProvider`
+* `EquityBucketInfosetKeyBuilder`
+* `CFRTrainer`
+
+The checkpoint is usually written to:
+
+```text
+checkpoints/lite_holdem_cfr_1k.pkl
+```
+
+Checkpoints are generated files and are ignored by Git by default.
+
+---
+
+## `cfr_vs_random.py`
+
+Runs a trained CFR agent against a random agent.
+
+```powershell
+py examples\cfr_vs_random.py
+```
+
+Run `train_cfr.py` first so that the CFR checkpoint exists.
+
+This example is useful for confirming that:
+
+* the checkpoint loads correctly
+* the CFR agent uses the same infoset builder as the trainer
+* missing nodes are tracked
+* CFR can play through the match runner
+
+---
+
+## `cfr_tournament.py`
+
+Runs a tournament including a trained CFR agent.
+
+Typical agents:
+
+* Random
+* Passive
+* Aggressive
+* Heuristic
+* Cached Equity
+* Cached Bucket
+* CFR
+
+```powershell
+py examples\cfr_tournament.py
+```
+
+This is the main CFR benchmark example.
+
+It prints:
+
+* payoff matrix
+* rankings
+* CFR missing-node count
+
+The result is usually exported to:
+
+```text
+results/cfr_tournament.csv
 ```
 
 ---
@@ -180,16 +256,18 @@ For exact equity-agent benchmarking:
 py examples\equity_tournament.py
 ```
 
-For bucket equity benchmarking:
-
-```powershell
-py examples\bucket_equity_tournament.py
-```
-
 For cached equity benchmarking:
 
 ```powershell
 py examples\cached_equity_tournament.py
+```
+
+For CFR:
+
+```powershell
+py examples\train_cfr.py
+py examples\cfr_vs_random.py
+py examples\cfr_tournament.py
 ```
 
 ---
@@ -219,3 +297,5 @@ py -m pytest
 Generated CSV files are written to the `results/` folder.
 
 Generated SQLite cache files are written to the `cache/` folder.
+
+Generated CFR checkpoints are written to the `checkpoints/` folder.
