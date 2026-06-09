@@ -111,7 +111,11 @@ class CachedEquityBucketProvider:
 
     def get_bucket(self, private_cards, public_cards):
         result = self.equity_cache.get(private_cards, public_cards)
-        return result["bucket"]  
+        return result["bucket"] 
+    
+    def get_equity(self, private_cards, public_cards):
+        result = self.equity_cache.get(private_cards, public_cards)
+        return result["equity"]  
     
 class MemoizedBucketProvider:
     """
@@ -145,7 +149,20 @@ class MemoizedBucketProvider:
         self.cache[key] = bucket
 
         return bucket
+    
+    def get_equity(self, private_cards, public_cards):
+        key = self.make_key(private_cards, public_cards)
 
+        if key in self.cache:
+            self.hits += 1
+            return self.cache[key]
+
+        self.misses += 1
+        equity = self.bucket_provider.get_equity(private_cards, public_cards)
+        self.cache[key] = equity
+
+        return equity
+    
     def stats(self):
         total = self.hits + self.misses
 
@@ -162,7 +179,184 @@ class MemoizedBucketProvider:
         }
     
     
+class EquityPotBucketInfosetKeyBuilder(InfosetKeyBuilder):
+    name = "equity_pot_bucket_v1"
+
+    def __init__(self, bucket_provider):
+        self.bucket_provider = bucket_provider
+
+    def from_state(self, state, player):
+        private_cards = state.player_cards[player]
+        public_cards = state.public_cards
+
+        equity_bucket = self.bucket_provider.get_bucket(
+            private_cards,
+            public_cards,
+        )
+        
+        pot_bucket = self.pot_bucket(state.pot)
+
+        position = 1 if player == state.button_player else 0
+        facing_bet = state.amount_to_call(player) > 0
+        street_history = self.encode_street_history(state.actions_this_round)
+
+        return (
+            player,
+            state.street,
+            equity_bucket,
+            pot_bucket,
+            position,
+            facing_bet,
+            state.raises_this_round,
+            street_history,
+        )
+
+    def from_observation(self, observation):
+        private_cards = observation["private_cards"]
+        public_cards = observation["public_cards"]
+
+        equity_bucket = self.bucket_provider.get_bucket(
+            private_cards,
+            public_cards,
+        )
+        
+        pot_bucket = self.pot_bucket(observation["pot"])
+
+        player = observation["current_player"]
+        street = observation["street"]
+
+        # These should be added to observation if not already present.
+        button_player = observation["button_player"]
+        raises_this_round = observation["raises_this_round"]
+        amount_to_call = observation["amount_to_call"]
+        actions_this_round = observation["actions_this_round"]
+
+        position = 1 if player == button_player else 0
+        facing_bet = amount_to_call > 0
+        street_history = self.encode_street_history(actions_this_round)
+
+        return (
+            player,
+            street,
+            equity_bucket,
+            pot_bucket,
+            position,
+            facing_bet,
+            raises_this_round,
+            street_history,
+        )   
     
+    def pot_bucket(self, pot):
+        if pot <= 4:
+            return 0
+        if pot <= 8:
+            return 1
+        if pot <= 16:
+            return 2
+        return 3
+
+
+class StreetSpecificEquityPotBucketInfosetKeyBuilder(InfosetKeyBuilder):
+    name = "street_pot_bucket_v1"
+
+    def __init__(self, bucket_provider):
+        self.bucket_provider = bucket_provider
+
+    def from_state(self, state, player):
+        private_cards = state.player_cards[player]
+        public_cards = state.public_cards
+
+        equity = self.bucket_provider.get_equity(
+            private_cards,
+            public_cards,
+        )
+        
+ 
+        
+        equity_bucket = self.equity_bucket_for_street(equity,state.street)
+        
+        pot_bucket = self.pot_bucket(state.pot)
+
+        position = 1 if player == state.button_player else 0
+        facing_bet = state.amount_to_call(player) > 0
+        street_history = self.encode_street_history(state.actions_this_round)
+
+        return (
+            player,
+            state.street,
+            equity_bucket,
+            pot_bucket,
+            position,
+            facing_bet,
+            state.raises_this_round,
+            street_history,
+        )
+
+    def from_observation(self, observation):
+        private_cards = observation["private_cards"]
+        public_cards = observation["public_cards"]
+
+        equity = self.bucket_provider.get_equity(
+            private_cards,
+            public_cards,
+        )
+        
+       
+        
+        
+        
+        pot_bucket = self.pot_bucket(observation["pot"])
+
+        player = observation["current_player"]
+        street = observation["street"]
+        
+        equity_bucket = self.equity_bucket_for_street(equity,street)
+
+        # These should be added to observation if not already present.
+        button_player = observation["button_player"]
+        raises_this_round = observation["raises_this_round"]
+        amount_to_call = observation["amount_to_call"]
+        actions_this_round = observation["actions_this_round"]
+
+        position = 1 if player == button_player else 0
+        facing_bet = amount_to_call > 0
+        street_history = self.encode_street_history(actions_this_round)
+
+        return (
+            player,
+            street,
+            equity_bucket,
+            pot_bucket,
+            position,
+            facing_bet,
+            raises_this_round,
+            street_history,
+        ) 
+    
+    def equity_bucket_for_street(self,equity, street):
+        if street == 0:  # preflop
+            thresholds = [0.35, 0.45, 0.55, 0.65]
+        elif street == 1:  # flop
+            thresholds = [0.25, 0.40, 0.55, 0.70]
+        elif street == 2:  # turn
+            thresholds = [0.20, 0.35, 0.55, 0.75]
+        else:  # river
+            thresholds = [0.10, 0.30, 0.50, 0.75]
+    
+        for bucket, threshold in enumerate(thresholds):
+            if equity < threshold:
+                return bucket
+    
+        return len(thresholds)
+    
+    def pot_bucket(self, pot):
+        if pot <= 4:
+            return 0
+        if pot <= 8:
+            return 1
+        if pot <= 16:
+            return 2
+        return 3    
     
     
     

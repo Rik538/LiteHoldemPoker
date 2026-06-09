@@ -9,7 +9,7 @@ from pathlib import Path
 
 from lite_holdem_ai.cfr.infoset import (
     CachedEquityBucketProvider,
-    EquityBucketInfosetKeyBuilder,
+    EquityPotBucketInfosetKeyBuilder,
     MemoizedBucketProvider,
 )
 from lite_holdem_ai.cfr.mccfr_trainer import MCCFRTrainer
@@ -34,8 +34,9 @@ def main():
         )
 
     with EquityCache(cache_path) as equity_cache:
-        bucket_provider = CachedEquityBucketProvider(equity_cache)
-        infoset_builder = EquityBucketInfosetKeyBuilder(bucket_provider)
+        raw_bucket_provider = CachedEquityBucketProvider(equity_cache)
+        bucket_provider = MemoizedBucketProvider(raw_bucket_provider)
+        infoset_builder = EquityPotBucketInfosetKeyBuilder(bucket_provider)
 
         trainer = MCCFRTrainer(
             infoset_builder=infoset_builder,
@@ -53,19 +54,19 @@ def main():
         )
         
         elapsedMCCFR = time.perf_counter() - start
-        trainer_stats["Base MCCFR"] = elapsedMCCFR
+        trainer_stats["Pot Bucket Infoset MCCFR"] = elapsedMCCFR
         
 
         print()
         print("Training complete.")
 
 
-
+    """
             
     with EquityCache(cache_path) as equity_cache:
         raw_bucket_provider = CachedEquityBucketProvider(equity_cache)
         bucket_provider = MemoizedBucketProvider(raw_bucket_provider)
-        infoset_builder = EquityBucketInfosetKeyBuilder(bucket_provider)
+        infoset_builder = EquityPotBucketInfosetKeyBuilder(bucket_provider)
 
         trainer = MCCFRTrainer(
             infoset_builder=infoset_builder,
@@ -90,7 +91,7 @@ def main():
         print()
         print("Training complete.")
 
-
+    """
     for trainer in trainer_stats.keys():
         
         elapsed = trainer_stats[trainer]

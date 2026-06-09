@@ -12,7 +12,7 @@ from .deck import Deck
 from .actions import Action 
 from .streets import Street
 from .showdown import Showdown
-import copy
+
 
 
 

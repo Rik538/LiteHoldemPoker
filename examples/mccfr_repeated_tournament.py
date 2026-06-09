@@ -30,6 +30,7 @@ CACHE_PATH = Path("cache") / "equity_cache.sqlite"
 CFR_10K_PATH = Path("checkpoints") / "lite_holdem_cfr_10k.pkl"
 MCCFR_10K_PATH = Path("checkpoints") / "lite_holdem_optimised_mccfr_10k.pkl"
 MCCFR_100K_PATH = Path("checkpoints") / "lite_holdem_optimised_mccfr_100k.pkl"
+MCCFR_500K_PATH = Path("checkpoints") / "lite_holdem_mccfr_500k.pkl"
 
 
 def make_infoset_builder(cache_path):
@@ -103,6 +104,13 @@ def make_agents(seed):
             seed=seed + 30,
             trainer_cls=MCCFRTrainer,
         ),
+        load_cfr_agent(
+            checkpoint_path=MCCFR_500K_PATH,
+            cache_path=CACHE_PATH,
+            name="MCCFR 500k",
+            seed=seed + 40,
+            trainer_cls=MCCFRTrainer,
+        ),
     ]
 
 
@@ -113,6 +121,7 @@ def main():
             CFR_10K_PATH,
             MCCFR_10K_PATH,
             MCCFR_100K_PATH,
+            MCCFR_500K_PATH,
         ]
         if not path.exists()
     ]
