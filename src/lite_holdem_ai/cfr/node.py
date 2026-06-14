@@ -30,13 +30,19 @@ class CFRNode:
     regret_sum: list[float] = field(default_factory=lambda: [0.0] * NUM_ACTIONS)
     strategy_sum: list[float] = field(default_factory=lambda: [0.0] * NUM_ACTIONS)
 
-    def get_strategy(self, legal_actions):
+    def get_strategy(
+        self,
+        legal_actions,
+        reach_probability: float = 1.0,
+        accumulate_strategy: bool = True,
+    ) -> list[float]:
         if not legal_actions:
             raise ValueError("CFRNode received no legal actions")
 
         strategy = [0.0] * NUM_ACTIONS
         positive_regret_sum = 0.0
 
+        # Always calculate current strategy from regrets
         for action in legal_actions:
             idx = ACTION_INDEX[action]
             positive_regret = max(self.regret_sum[idx], 0.0)
@@ -54,9 +60,15 @@ class CFRNode:
                 idx = ACTION_INDEX[action]
                 strategy[idx] = probability
 
+        # Only this part should be delayed
+        if accumulate_strategy:
+            for action in legal_actions:
+                idx = ACTION_INDEX[action]
+                self.strategy_sum[idx] += reach_probability * strategy[idx]
+
         return strategy
 
-    def average_strategy(self, legal_actions):
+    def average_strategy(self, legal_actions) -> list[float]:
         if not legal_actions:
             raise ValueError("CFRNode received no legal actions")
 
