@@ -2,7 +2,7 @@
 
 `lite-holdem-ai` is a Python package for experimenting with agents in a simplified 20-card heads-up Texas Hold'em-style poker game.
 
-The project includes a playable game engine, environment wrapper, baseline agents, equity-based agents, cached equity agents, bucketed CFR, external-sampling MCCFR, match evaluation, tournament evaluation, CSV export, and diagnostic summaries for comparing poker agents.
+The project includes a playable game engine, environment wrapper, baseline agents, equity-based agents, cached equity agents, bucketed CFR, external-sampling MCCFR, repeated tournament evaluation, CSV export, and diagnostic summaries for comparing poker agents.
 
 This package is intended as a bridge between small imperfect-information games like Leduc poker and larger poker AI projects.
 
@@ -14,7 +14,7 @@ This package is intended as a bridge between small imperfect-information games l
 * Heads-up two-player poker
 * Private cards and public board cards
 * Multiple betting streets
-* Fixed action set:
+* Fixed-limit style action set:
 
   * `FOLD`
   * `CHECK_CALL`
@@ -39,11 +39,13 @@ This package is intended as a bridge between small imperfect-information games l
 * Full equity cache builder
 * Bucketed CFR trainer
 * External-sampling MCCFR trainer
-* CFR playing agent
+* CFR/MCCFR playing agent
+* Pluggable infoset abstraction builders
+* Repeated tournament evaluation with confidence intervals
 * Match runner
 * Tournament runner
 * Payoff matrix generation
-* CSV export for tournament results
+* CSV export for tournament and repeated tournament results
 * Agent style diagnostics:
 
   * VPIP-style rate
@@ -66,28 +68,34 @@ LiteHoldemPoker/
 ├── README.md
 ├── .gitignore
 │
-├── cache/
+├── cache/                      # generated, ignored by Git
 │   └── equity_cache.sqlite
 │
-├── checkpoints/
+├── checkpoints/                # generated, ignored by Git
 │   ├── lite_holdem_cfr_*.pkl
 │   └── lite_holdem_mccfr_*.pkl
 │
 ├── examples/
 │   ├── README.md
+│   ├── abstraction_experiment_tournament.py
 │   ├── baseline_tournament.py
-│   ├── equity_tournament.py
+│   ├── benchmark_training.py
 │   ├── bucket_equity_tournament.py
-│   ├── cached_equity_tournament.py
 │   ├── build_equity_cache.py
-│   ├── train_cfr.py
-│   ├── cfr_vs_random.py
+│   ├── cached_equity_tournament.py
+│   ├── cfr_scaling_tournament.py
 │   ├── cfr_tournament.py
-│   ├── train_mccfr.py
-│   ├── mccfr_tournament.py
+│   ├── cfr_vs_random.py
+│   ├── equity_tournament.py
 │   ├── equity_vs_random.py
+│   ├── heuristic_vs_aggressive.py
+│   ├── heuristic_vs_random.py
+│   ├── mccfr_repeated_tournament.py
+│   ├── mccfr_scaling_tournament.py
 │   ├── random_vs_random.py
-│   └── heuristic_vs_aggressive.py
+│   ├── repeated_tournament.py
+│   ├── train_cfr.py
+│   └── train_mccfr.py
 │
 ├── src/
 │   └── lite_holdem_ai/
@@ -100,8 +108,10 @@ LiteHoldemPoker/
 │       └── game/
 │
 ├── tests/
-└── results/
+└── results/                    # generated, ignored by Git
 ```
+
+Generated files in `cache/`, `checkpoints/`, and `results/` should not be committed.
 
 ---
 
@@ -147,6 +157,7 @@ The tests cover:
 * CFR trainer
 * CFR agent
 * external-sampling MCCFR trainer
+* repeated tournament evaluation
 * match running
 * tournament running
 * CSV export
@@ -219,6 +230,30 @@ result.print_summary()
 
 ---
 
+## Running examples
+
+Run examples from the project root:
+
+```powershell
+py examples\baseline_tournament.py
+```
+
+The examples folder includes scripts for:
+
+* basic head-to-head matches
+* baseline tournaments
+* exact equity and bucket equity tournaments
+* cached equity tournaments
+* CFR training and evaluation
+* MCCFR training and evaluation
+* repeated tournament evaluation
+* abstraction experiments
+* training speed benchmarks
+
+See `examples/README.md` for the full examples list.
+
+---
+
 ## Running a baseline tournament
 
 To compare the baseline agents:
@@ -266,7 +301,7 @@ The cached agents use the SQLite cache instead of calculating equity during game
 
 This project includes a bucketed CFR trainer using an equity-bucket information set abstraction.
 
-The current CFR infoset key contains:
+The original CFR infoset key contains:
 
 ```text
 player
@@ -303,7 +338,7 @@ External-sampling MCCFR is faster than the full CFR trainer because:
 * the traversing player explores all legal actions
 * opponent actions are sampled
 * initial deals are sampled
-* bucket lookups can be memoised in memory
+* bucket/equity lookups can be memoised in memory
 
 To train an MCCFR checkpoint:
 
@@ -311,16 +346,54 @@ To train an MCCFR checkpoint:
 py examples\train_mccfr.py
 ```
 
-The MCCFR trainer uses the same infoset abstraction as the normal CFR trainer, so the resulting checkpoint can be played by the same `CFRAgent`.
+The MCCFR trainer uses the same infoset abstraction as the CFR agent, so the resulting checkpoint can be played by the same `CFRAgent`.
 
 The recommended training setup uses:
 
 * `CachedEquityBucketProvider`
 * `MemoizedBucketProvider`
-* `EquityBucketInfosetKeyBuilder`
+* an `InfosetKeyBuilder`
 * `MCCFRTrainer`
 
 The memoised bucket provider avoids repeated SQLite lookups during training and gives a significant training speedup.
+
+---
+
+## CFR/MCCFR infoset abstraction
+
+The project now supports pluggable infoset key builders. This allows different abstractions to be trained and evaluated without rewriting the CFR/MCCFR trainer.
+
+Abstractions tested so far include:
+
+| Abstraction | Description |
+|---|---|
+| Equity bucket | Coarse hand-equity bucket. |
+| Pot bucket | Adds coarse pot-size context. |
+| Street-aware equity bucket | Uses different equity thresholds on preflop, flop, turn, and river. |
+| Street-aware pot bucket | Combines street-aware equity thresholds with pot-size context. |
+| No-history variant | Removes exact current-street action history from the key. |
+| 7-bucket variant | Tests finer street-aware equity resolution. |
+
+The strongest confirmed abstraction family so far is the street-aware pot-bucket family.
+
+A representative strong infoset key is:
+
+```text
+player
+street
+street-aware equity bucket
+pot bucket
+position
+facing-bet flag
+raises this round
+```
+
+The abstraction experiments suggest:
+
+* Street-aware equity thresholds are a major improvement over global equity buckets.
+* Adding pot bucket improves the street-aware abstraction.
+* Exact street action history appears to be mostly redundant once `facing_bet`, `raises_this_round`, `position`, `pot_bucket`, and street-aware equity are included.
+* Increasing from 5 to 7 street-aware equity buckets is viable, but has not clearly outperformed the simpler 5-bucket version in focused evaluation.
 
 ---
 
@@ -338,10 +411,28 @@ To run a tournament including CFR:
 py examples\cfr_tournament.py
 ```
 
-To run a tournament including MCCFR:
+To compare CFR scaling:
 
 ```powershell
-py examples\mccfr_tournament.py
+py examples\cfr_scaling_tournament.py
+```
+
+To compare MCCFR scaling:
+
+```powershell
+py examples\mccfr_scaling_tournament.py
+```
+
+To run repeated MCCFR evaluation:
+
+```powershell
+py examples\mccfr_repeated_tournament.py
+```
+
+To compare abstraction variants:
+
+```powershell
+py examples\abstraction_experiment_tournament.py
 ```
 
 Typical agents in the CFR/MCCFR tournaments:
@@ -351,8 +442,39 @@ Typical agents in the CFR/MCCFR tournaments:
 * Cached Bucket
 * CFR
 * MCCFR
+* MCCFR abstraction variants
 
 CFR and MCCFR checkpoints are trained using the same shared infoset builder that the CFR playing agent uses. This ensures that the key used during training matches the key used during play.
+
+---
+
+## Repeated tournament evaluation
+
+Single tournaments can be noisy. The preferred evaluation method is now repeated tournament evaluation.
+
+`RepeatedTournamentRunner` runs multiple independent tournaments and aggregates the payoff tables. It reports:
+
+* mean score
+* standard deviation
+* standard error
+* 95% confidence interval
+
+Example ranking format:
+
+```text
+Rankings:
+1. Street Aware 500k: 0.0734 ± 0.0188 (n=20)
+2. 7 Bucket 500k:     0.0307 ± 0.0201 (n=20)
+3. CachedBucket:     -0.1042 ± 0.0241 (n=20)
+```
+
+This is the preferred way to compare CFR/MCCFR checkpoints and abstraction variants.
+
+Repeated tournament results can be exported:
+
+```python
+result.to_csv("results/repeated_abstraction_benchmark.csv")
+```
 
 ---
 
@@ -460,9 +582,9 @@ Stores cumulative regrets and cumulative strategy sums for the fixed action set:
 
 ### InfosetKeyBuilder
 
-Shared abstraction layer for CFR training and CFR playing.
+Shared abstraction layer for CFR/MCCFR training and CFR playing.
 
-The current implementation is `EquityBucketInfosetKeyBuilder`.
+The current strongest abstractions use street-aware equity buckets and pot buckets.
 
 ### CachedEquityBucketProvider
 
@@ -470,9 +592,9 @@ Gets equity buckets from the SQLite equity cache.
 
 ### MemoizedBucketProvider
 
-Wraps another bucket provider and caches bucket lookups in memory.
+Wraps another bucket provider and caches bucket/equity lookups in memory.
 
-This is useful for CFR and MCCFR training because infoset generation calls `get_bucket()` very frequently.
+This is useful for CFR and MCCFR training because infoset generation calls the bucket provider very frequently.
 
 ### CFRTrainer
 
@@ -521,12 +643,34 @@ result.print_payoff_table()
 result.print_rankings()
 ```
 
-### CSV export
+### RepeatedTournamentRunner
 
-Tournament results can be exported:
+Runs multiple tournaments and aggregates the results.
 
 ```python
-result.to_csv("results/mccfr_tournament.csv")
+runner = RepeatedTournamentRunner(
+    agent_factory=make_agents,
+    env_factory=lambda: LiteHoldemEnv(),
+)
+
+result = runner.run(
+    hands_per_seat=5000,
+    include_self_play=False,
+    number_tournaments=20,
+)
+
+result.print_mean_table()
+result.print_rankings()
+```
+
+`agent_factory(seed)` should create fresh agents for each repeated tournament run. This avoids reusing stale agent state, open cache connections, or random number generators.
+
+### CSV export
+
+Tournament and repeated tournament results can be exported:
+
+```python
+result.to_csv("results/tournament.csv")
 ```
 
 ---
@@ -548,23 +692,75 @@ Implemented:
 * bucketed CFR trainer
 * external-sampling MCCFR trainer
 * CFR/MCCFR playing agent
+* pluggable infoset key builders
+* repeated tournament evaluation
 * match evaluation
 * tournament evaluation
 * diagnostic summaries
 * CSV export
 * test suite
 * example scripts
+* abstraction experiment scripts
+
+Current experimental findings:
+
+* Street-aware equity abstraction is the strongest improvement found so far.
+* Street-aware pot-bucket MCCFR agents outperform earlier global-equity-bucket and pot-bucket-only variants.
+* The no-history variant appears competitive, suggesting exact street action history is not essential in the current abstraction.
+* The 7-bucket variant is viable but has not clearly beaten the simpler 5-bucket street-aware abstraction.
+* Repeated tournament evaluation is now used for more reliable comparisons.
 
 Future improvements could include:
 
-* stronger CFR abstraction
-* pot-size bucket features
-* best-response / exploitability estimates
-* configurable equity thresholds
+* delayed average-strategy accumulation
+* multi-seed MCCFR training
+* checkpoint selection across training stages
+* strategy averaging across compatible checkpoints
+* approximate best-response / exploitability estimates
+* action-frequency diagnostics by street and equity bucket
+* configurable abstraction settings
 * command-line interface
-* 52-card Hold'em version
+* short-deck or 52-card limit Hold'em version
 * learning-based agents
 * neural equity approximation
+
+---
+
+## Development notes
+
+Before committing:
+
+```powershell
+py -m pytest
+git status
+```
+
+Generated files should remain untracked:
+
+```text
+cache/
+checkpoints/
+results/
+*.sqlite
+*.sqlite3
+*.db
+*.pkl
+```
+
+Suggested commit for this branch:
+
+```powershell
+git add README.md examples\README.md
+git commit -m "Update documentation for MCCFR abstraction experiments"
+```
+
+A sensible next branch is training-method improvement, for example:
+
+```powershell
+git checkout main
+git pull
+git checkout -b feature/mccfr-training-methods
+```
 
 ---
 
