@@ -66,7 +66,7 @@ class MultiseedMCCFRTrainer:
                 save_every=save_every,
                 print_every=print_every,
                 update_both_players=update_both_players,
-                average_starting_iteration=average_starting_iteration,
+                averaging_start_iteration=average_starting_iteration,
             )
 
             result = MultiseedTrainingResult(
