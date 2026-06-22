@@ -7,7 +7,7 @@ settings but different RNG seeds.
 
 Run from project root:
 
-    py examples\multiseed_mccfr_tournament.py
+    py examples\\multiseed_mccfr_tournament.py
 """
 
 from pathlib import Path
@@ -155,4 +155,4 @@ def main():
 
 if __name__ == "__main__":
     main()
-```
+
