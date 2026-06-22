@@ -46,6 +46,7 @@ results/
 | `mccfr_repeated_tournament.py` | Runs repeated tournament evaluation for MCCFR agents. |
 | `repeated_tournament.py` | Demonstrates repeated tournament evaluation and confidence intervals. |
 | `abstraction_experiment_tournament.py` | Compares different infoset abstraction variants. |
+| `multiseed_mccfr_tournament.py` | Evaluates MCCFR checkpoints trained with different RNG seeds. |
 
 ---
 
@@ -56,6 +57,7 @@ results/
 | `train_cfr.py` | Trains a bucketed CFR agent. |
 | `train_mccfr.py` | Trains an external-sampling MCCFR agent. |
 | `train_delayed_mccfr.py` | Trains MCCFR with delayed average-strategy accumulation. |
+| `train_multiseed_mccfr.py` | Trains several MCCFR checkpoints with different RNG seeds. |
 | `benchmark_training.py` | Benchmarks training speed for different MCCFR/infoset configurations. |
 
 ---
@@ -147,9 +149,43 @@ trainer.train(
 )
 ```
 
-This is useful for testing whether early noisy strategies should be excluded from the final average strategy.
-
 Recent repeated evaluation showed delayed averaging may give small improvements at 100k iterations, but longer training remained stronger.
+
+---
+
+## Multi-seed MCCFR examples
+
+`train_multiseed_mccfr.py` trains several independent MCCFR checkpoints using the same settings but different RNG seeds.
+
+Example output checkpoints:
+
+```text
+lite_holdem_nohist_500k_seed1.pkl
+lite_holdem_nohist_500k_seed2.pkl
+lite_holdem_nohist_500k_seed3.pkl
+lite_holdem_nohist_500k_seed4.pkl
+lite_holdem_nohist_500k_seed5.pkl
+```
+
+`multiseed_mccfr_tournament.py` evaluates those checkpoints against each other, a cached bucket baseline, and existing longer-training checkpoints.
+
+The goal is to measure seed variance and determine whether best-of-N checkpoint selection can match or beat longer single-seed training.
+
+Current findings:
+
+- 500k seed checkpoints varied noticeably in strength.
+- Best-of-5 500k selection produced a checkpoint competitive with a 1M checkpoint.
+- Seed averaging was viable but did not outperform the strongest 1M single-run checkpoint.
+
+---
+
+## Seed-averaged checkpoint examples
+
+Seed-averaged checkpoints are created by loading compatible checkpoints, summing their `strategy_sum` values, and saving a new combined checkpoint.
+
+Compatible checkpoints must use the same infoset builder and game settings.
+
+The resulting checkpoint can be evaluated with the normal `CFRAgent` and repeated tournament runner.
 
 ---
 
@@ -181,6 +217,13 @@ py examples\mccfr_repeated_tournament.py
 py examples\train_delayed_mccfr.py
 ```
 
+### Train and evaluate multiple seeds
+
+```powershell
+py examples\train_multiseed_mccfr.py
+py examples\multiseed_mccfr_tournament.py
+```
+
 ### Compare abstractions
 
 ```powershell
@@ -195,6 +238,6 @@ py examples\abstraction_experiment_tournament.py
 py -m pytest
 git status
 git add README.md examples\README.md
-git commit -m "Update documentation for MCCFR training experiments"
+git commit -m "Update documentation for MCCFR multiseed experiments"
 git push
 ```

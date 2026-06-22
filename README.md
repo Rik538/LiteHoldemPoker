@@ -2,7 +2,7 @@
 
 `lite-holdem-ai` is a Python package for experimenting with agents in a simplified 20-card heads-up Texas Hold'em-style poker game.
 
-The project includes a playable game engine, environment wrapper, baseline agents, equity-based agents, cached equity agents, bucketed CFR, external-sampling MCCFR, repeated tournament evaluation, infoset abstraction experiments, delayed average-strategy experiments, CSV export, and diagnostic summaries for comparing poker agents.
+The project includes a playable game engine, environment wrapper, baseline agents, equity-based agents, cached equity agents, bucketed CFR, external-sampling MCCFR, repeated tournament evaluation, infoset abstraction experiments, MCCFR training-method experiments, CSV export, and diagnostic summaries for comparing poker agents.
 
 This package is intended as a bridge between small imperfect-information games like Leduc poker and larger poker AI projects.
 
@@ -14,27 +14,18 @@ This package is intended as a bridge between small imperfect-information games l
 - Heads-up two-player poker
 - Private cards and public board cards
 - Multiple betting streets
-- Fixed action set:
-  - `FOLD`
-  - `CHECK_CALL`
-  - `BET_RAISE`
+- Fixed action set: `FOLD`, `CHECK_CALL`, `BET_RAISE`
 - Hand evaluator
 - Game state and environment wrapper
-- Baseline agents:
-  - `RandomAgent`
-  - `PassiveAgent`
-  - `AggressiveAgent`
-  - `HeuristicAgent`
-- Exact equity agents:
-  - `EquityAgent`
-  - `BucketEquityAgent`
-- Cached equity agents:
-  - `CachedEquityAgent`
-  - `CachedBucketEquityAgent`
+- Baseline agents: `RandomAgent`, `PassiveAgent`, `AggressiveAgent`, `HeuristicAgent`
+- Equity agents: `EquityAgent`, `BucketEquityAgent`
+- Cached equity agents: `CachedEquityAgent`, `CachedBucketEquityAgent`
 - SQLite equity cache and full equity cache builder
 - Bucketed CFR trainer
 - External-sampling MCCFR trainer
-- Delayed average-strategy MCCFR experiments
+- Delayed average-strategy MCCFR support
+- Multi-seed MCCFR training and checkpoint-selection experiments
+- Seed-averaged checkpoint experiments
 - CFR/MCCFR playing agent
 - Pluggable infoset key builders
 - Match, tournament, and repeated tournament evaluation
@@ -51,30 +42,18 @@ LiteHoldemPoker/
 ├── pyproject.toml
 ├── README.md
 ├── .gitignore
-│
 ├── cache/
-│   └── equity_cache.sqlite
-│
 ├── checkpoints/
-│   ├── lite_holdem_cfr_*.pkl
-│   └── lite_holdem_mccfr_*.pkl
-│
 ├── examples/
 │   ├── README.md
-│   ├── baseline_tournament.py
-│   ├── benchmark_training.py
 │   ├── build_equity_cache.py
-│   ├── cached_equity_tournament.py
-│   ├── cfr_scaling_tournament.py
-│   ├── cfr_tournament.py
-│   ├── cfr_vs_random.py
-│   ├── equity_tournament.py
-│   ├── repeated_tournament.py
 │   ├── train_cfr.py
 │   ├── train_mccfr.py
 │   ├── train_delayed_mccfr.py
+│   ├── train_multiseed_mccfr.py
+│   ├── multiseed_mccfr_tournament.py
+│   ├── abstraction_experiment_tournament.py
 │   └── ...
-│
 ├── src/
 │   └── lite_holdem_ai/
 │       ├── agents/
@@ -82,7 +61,6 @@ LiteHoldemPoker/
 │       ├── equity/
 │       ├── evaluation/
 │       └── game/
-│
 ├── tests/
 └── results/
 ```
@@ -99,13 +77,9 @@ From the project root, install the package in editable mode:
 py -m pip install -e ".[dev]"
 ```
 
-Editable mode means changes inside `src/lite_holdem_ai/` are picked up immediately without reinstalling the package.
-
 ---
 
 ## Running tests
-
-Run the normal test suite:
 
 ```powershell
 py -m pytest
@@ -143,8 +117,6 @@ Remove-Item Env:\RUN_FULL_CACHE_TESTS
 
 ## Building the equity cache
 
-To build the SQLite equity cache:
-
 ```powershell
 py examples\build_equity_cache.py
 ```
@@ -164,7 +136,6 @@ The cache is generated data and is ignored by Git by default.
 ```python
 from lite_holdem_ai import LiteHoldemEnv, MatchRunner, RandomAgent
 
-
 runner = MatchRunner(
     env_factory=lambda: LiteHoldemEnv(),
     agents=[
@@ -181,13 +152,13 @@ result.print_summary()
 
 ## Running tournaments
 
-To compare the baseline agents:
+Baseline agents:
 
 ```powershell
 py examples\baseline_tournament.py
 ```
 
-To compare equity-based agents:
+Equity agents:
 
 ```powershell
 py examples\equity_tournament.py
@@ -195,7 +166,7 @@ py examples\bucket_equity_tournament.py
 py examples\cached_equity_tournament.py
 ```
 
-To compare CFR or MCCFR checkpoints:
+CFR/MCCFR checkpoints:
 
 ```powershell
 py examples\cfr_tournament.py
@@ -223,9 +194,9 @@ Example ranking format:
 
 ```text
 Rankings:
-1. No History 500k:          0.0526 ± 0.0098 (n=40)
-2. No History avg 75k 100k:  0.0336 ± 0.0134 (n=40)
-3. No History avg 0k 100k:   0.0257 ± 0.0129 (n=40)
+1. No History 1M:              0.0726 ± 0.0206 (n=20)
+2. Average Seed 1 to 5 500k:   0.0260 ± 0.0214 (n=20)
+3. No History 500k:            0.0215 ± 0.0226 (n=20)
 ```
 
 Repeated evaluation is used for comparing CFR/MCCFR checkpoints, abstraction variants, and training-method variants.
@@ -267,16 +238,22 @@ External-sampling MCCFR is faster than the full CFR trainer because:
 - initial deals are sampled
 - bucket lookups can be memoised in memory
 
-To train a normal MCCFR checkpoint:
+Normal MCCFR training:
 
 ```powershell
 py examples\train_mccfr.py
 ```
 
-To train a delayed-averaging MCCFR checkpoint:
+Delayed-averaging MCCFR training:
 
 ```powershell
 py examples\train_delayed_mccfr.py
+```
+
+Multi-seed MCCFR training:
+
+```powershell
+py examples\train_multiseed_mccfr.py
 ```
 
 The MCCFR trainer uses the same infoset abstraction as the CFR playing agent, so trained checkpoints can be played by `CFRAgent`.
@@ -294,8 +271,6 @@ The recommended fast setup uses:
 
 The MCCFR trainer supports delaying average-strategy accumulation while still updating regrets from the first iteration.
 
-The rule is:
-
 ```text
 regret updates: always from iteration 1
 utility diagnostics: always from iteration 1
@@ -311,7 +286,59 @@ trainer.train(
 )
 ```
 
-Recent results suggest delayed averaging is useful as an experimental option, but not yet a replacement for longer training. In one 40-run repeated benchmark, the best 100k delayed variant improved slightly over normal 100k, while the 500k baseline remained strongest.
+Experimental finding:
+
+- Delayed averaging showed small possible gains at 100k iterations.
+- The effect was noisy and cutoff-sensitive.
+- Longer 500k/1M training remained stronger than delayed 100k training.
+- Delayed averaging is useful as an experimental option, but is not currently the default.
+
+---
+
+## Multi-seed training and checkpoint selection
+
+MCCFR training is stochastic. Different seeds can produce different strategies even when the abstraction, iteration count, and training settings are the same.
+
+Multi-seed training means training several independent checkpoints:
+
+```text
+NoHistory seed 1 500k
+NoHistory seed 2 500k
+NoHistory seed 3 500k
+NoHistory seed 4 500k
+NoHistory seed 5 500k
+```
+
+Then repeated tournament evaluation is used to select the strongest checkpoint.
+
+Experimental findings:
+
+- Seed variance exists at both 100k and 500k iterations.
+- Best-of-5 seed selection produced a 500k checkpoint competitive with a 1M checkpoint.
+- The margins were small relative to evaluation variance, but seed selection was more promising than delayed averaging.
+
+---
+
+## Seed-averaged checkpoints
+
+Compatible checkpoints can be combined by summing their `strategy_sum` arrays into a new checkpoint.
+
+Compatibility requires the same:
+
+- infoset builder
+- action mapping
+- game rules
+- bet sizes
+- raise cap
+
+For playing, the important field is `strategy_sum`, because `CFRAgent` uses the node average strategy.
+
+Experimental findings:
+
+- Averaging five 500k seed checkpoints produced a small improvement over the original 500k checkpoint and selected Seed 5 checkpoint in one benchmark.
+- The averaged checkpoint did not outperform the 1M checkpoint.
+- Averaging only three seeds was weaker, suggesting seed averaging is sensitive to which checkpoints are included.
+- For the current Lite Hold'em abstraction, longer single-run training remains the strongest tested option, while seed averaging is useful as a robustness tool.
 
 ---
 
@@ -437,6 +464,10 @@ Trains a bucketed CFR strategy using sampled deals and the shared infoset abstra
 
 Trains a bucketed strategy using external-sampling MCCFR.
 
+### MultiseedMCCFRTrainer
+
+Runs several independent MCCFR training runs with different seeds and saves each checkpoint separately.
+
 ### CFRAgent
 
 Plays from trained CFR/MCCFR nodes using average strategy.
@@ -494,6 +525,8 @@ Implemented:
 - bucketed CFR trainer
 - external-sampling MCCFR trainer
 - delayed average-strategy support
+- multi-seed MCCFR training support
+- seed-averaged checkpoint experiments
 - CFR/MCCFR playing agent
 - pluggable infoset abstractions
 - repeated tournament evaluation
@@ -510,23 +543,24 @@ Current research findings:
 - No-history street-aware pot bucket is a compact and competitive abstraction.
 - 7-bucket hand-strength abstraction was viable but not clearly better than the 5-bucket version.
 - Delayed average-strategy accumulation showed small possible gains at 100k iterations, but longer training remained stronger.
+- Multi-seed selection was useful and produced a 500k seed competitive with 1M training.
+- Seed averaging was viable but did not beat the strongest 1M single-run checkpoint.
 
 ---
 
 ## Next development direction
 
-The current branch focuses on MCCFR training-method improvements rather than new abstractions.
+The current training-method branch has tested delayed averaging, multi-seed selection, and seed-averaged checkpoints.
 
 Potential next experiments:
 
-1. Multi-seed MCCFR training.
-2. Checkpoint selection across seeds.
-3. Strategy averaging across compatible checkpoints.
-4. Checkpoint selection across training stages.
-5. Approximate best-response / exploitability evaluation.
-6. Action-frequency diagnostics by street and equity bucket.
+1. Checkpoint selection across training stages.
+2. Approximate best-response / exploitability evaluation.
+3. Action-frequency diagnostics by street and equity bucket.
+4. Focused evaluation against stronger selected checkpoints.
+5. Porting the framework toward short-deck or full-deck limit Hold'em.
 
-The next likely experiment is multi-seed training and checkpoint selection, because recent results suggest stochastic variation between runs may be as important as the delayed-averaging cutoff.
+The next likely experiment is checkpoint selection across training stages, because the final checkpoint is not guaranteed to be the strongest policy.
 
 ---
 
