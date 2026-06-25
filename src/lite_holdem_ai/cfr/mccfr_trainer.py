@@ -39,25 +39,27 @@ class MCCFRTrainer:
 
         return self.nodes[info_set_key]
     
-    def sample_action(self, strategy, legal_actions):
-       if not legal_actions:
-           raise ValueError("Cannot sample from empty legal_actions")
-
-       r = self.rng.random()
-       cumulative = 0.0
-
-       for action in legal_actions:
-           idx = ACTION_INDEX[action]
-           cumulative += strategy[idx]
-
-           if r <= cumulative:
-               return action
-
-       return legal_actions[-1]
+    def sample_action(self, legal_actions, strategy):
+        if not legal_actions:
+            raise ValueError("Cannot sample action from empty legal_actions")
+    
+        roll = self.rng.random()
+        cumulative = 0.0
+    
+        for action in legal_actions:
+            idx = ACTION_INDEX[action]
+            cumulative += strategy[idx]
+    
+            if roll <= cumulative:
+                return action
+    
+        # Fallback for floating point rounding
+        return legal_actions[-1]
 
     def external_sampling_cfr(
         self,
         state,
+        env,
         traverser: int,
         reach_traverser: float,
         reach_opponent: float,
@@ -82,7 +84,7 @@ class MCCFRTrainer:
             return state.payoffs[traverser]
 
         player = state.current_player
-        legal_actions = state.legal_actions()
+        legal_actions = env.legal_actions(state)
 
         if not legal_actions:
             raise RuntimeError("Non-terminal MCCFR state has no legal actions")
@@ -101,6 +103,7 @@ class MCCFRTrainer:
     
             return self._traverser_node(
                 state=state,
+                env=env,
                 traverser=traverser,
                 reach_traverser=reach_traverser,
                 reach_opponent=reach_opponent,
@@ -118,6 +121,7 @@ class MCCFRTrainer:
     
         return self._opponent_node(
             state=state,
+            env=env,
             traverser=traverser,
             reach_traverser=reach_traverser,
             reach_opponent=reach_opponent,
@@ -130,6 +134,7 @@ class MCCFRTrainer:
     def _traverser_node(
         self,
         state,
+        env,
         traverser,
         reach_traverser,
         reach_opponent,
@@ -147,11 +152,11 @@ class MCCFRTrainer:
         for action in legal_actions:
             idx = ACTION_INDEX[action]
     
-            next_state = state.clone()
-            next_state.apply_action(action)
+            next_state = env.next_state(state,action)
     
             action_value = self.external_sampling_cfr(
                 state=next_state,
+                env=env,
                 traverser=traverser,
                 reach_traverser=reach_traverser * strategy[idx],
                 reach_opponent=reach_opponent,
@@ -171,6 +176,7 @@ class MCCFRTrainer:
     def _opponent_node(
         self,
         state,
+        env,
         traverser,
         reach_traverser,
         reach_opponent,
@@ -182,14 +188,14 @@ class MCCFRTrainer:
         """
         At opponent nodes, sample one action from the current strategy.
         """
-        sampled_action = self.sample_action(strategy, legal_actions)
+        sampled_action = self.sample_action(legal_actions,strategy)
         sampled_idx = ACTION_INDEX[sampled_action]
     
-        next_state = state.clone()
-        next_state.apply_action(sampled_action)
+        next_state = env.next_state(state,sampled_action)
     
         return self.external_sampling_cfr(
             state=next_state,
+            env=env,
             traverser=traverser,
             reach_traverser=reach_traverser,
             reach_opponent=reach_opponent * strategy[sampled_idx],
@@ -231,6 +237,7 @@ class MCCFRTrainer:
         
                 utility = self.external_sampling_cfr(
                     state=state,
+                    env=env,
                     traverser=traverser,
                     reach_traverser=1.0,
                     reach_opponent=1.0,

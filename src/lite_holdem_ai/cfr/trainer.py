@@ -23,12 +23,12 @@ class CFRTrainer:
 
         return self.nodes[info_set_key]
 
-    def cfr(self, state, reach0, reach1):
+    def cfr(self, state, env,reach0, reach1):
         if state.terminal:
             return state.payoffs[0]
 
         player = state.current_player
-        legal_actions = state.legal_actions()
+        legal_actions = env.legal_actions(state)
 
         if not legal_actions:
             raise RuntimeError("Non-terminal CFR state has no legal actions")
@@ -44,18 +44,19 @@ class CFRTrainer:
         for action in legal_actions:
             idx = ACTION_INDEX[action]
 
-            next_state = state.clone()
-            next_state.apply_action(action)
+            next_state = env.next_state(state,action)
 
             if player == 0:
                 action_value = self.cfr(
                     next_state,
+                    env,
                     reach0 * strategy[idx],
                     reach1,
                 )
             else:
                 action_value = self.cfr(
                     next_state,
+                    env,
                     reach0,
                     reach1 * strategy[idx],
                 )
@@ -86,7 +87,7 @@ class CFRTrainer:
             env.reset()
             state = env.state
 
-            utility = self.cfr(state, 1.0, 1.0)
+            utility = self.cfr(state,env, 1.0, 1.0)
 
             self.iterations_trained += 1
 

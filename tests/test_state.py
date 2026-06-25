@@ -4,172 +4,185 @@ Created on Sun May 31 17:26:54 2026
 
 @author: Richard
 """
+# -*- coding: utf-8 -*-
 
-import pytest
+from copy import deepcopy
+
 
 from lite_holdem_ai.game.actions import Action
 from lite_holdem_ai.game.state import GameState
+from lite_holdem_ai.game.streets import Street
 
 
-def test_game_state_imports():
-    assert GameState is not None
-
-
-def test_reset_hand_initialises_basic_state():
+def test_game_state_default_values_are_sensible():
     state = GameState()
-    state.reset_hand()
-    state.setup_preflop()
 
+    assert state.player_cards == [[], []]
+    assert state.public_cards == []
+
+    assert state.pot == 0
+    assert state.player_contributions == [0, 0]
+    assert state.round_bets == [0, 0]
+
+    assert state.current_player == 0
     assert state.terminal is False
     assert state.folded_player is None
-    assert len(state.payoffs) == 2
-    assert sum(state.payoffs) == 0
 
-    assert len(state.player_cards) == 2
-    assert len(state.player_cards[0]) == 2
-    assert len(state.player_cards[1]) == 2
-
-    assert isinstance(state.public_cards, list)
-    assert len(state.public_cards) == 0
-
-    assert state.pot > 0
-    assert len(state.player_contributions) == 2
-    assert sum(state.player_contributions) == state.pot
+    assert state.action_history == []
+    assert state.actions_this_round == []
+    assert state.raises_this_round == 0
+    assert state.payoffs == [0, 0]
 
 
-def test_reset_hand_deals_unique_private_cards():
+def test_amount_to_call_when_player_is_behind():
     state = GameState()
-    state.reset_hand()
-    state.setup_preflop()
+    state.round_bets = [1, 2]
 
-    all_private_cards = state.player_cards[0] + state.player_cards[1]
-
-    assert len(all_private_cards) == 4
-    assert len(set(all_private_cards)) == 4
+    assert state.amount_to_call(0) == 1
+    assert state.amount_to_call(1) == 0
 
 
-def test_initial_current_player_is_valid():
+def test_amount_to_call_when_bets_are_equal():
     state = GameState()
-    state.reset_hand()
+    state.round_bets = [2, 2]
 
-    assert state.current_player in [0, 1]
+    assert state.amount_to_call(0) == 0
+    assert state.amount_to_call(1) == 0
 
 
-def test_initial_legal_actions_are_not_empty():
+def test_amount_to_call_never_goes_negative():
     state = GameState()
-    state.reset_hand()
+    state.round_bets = [4, 2]
 
-    legal_actions = state.legal_actions()
-
-    assert len(legal_actions) > 0
-    assert all(isinstance(action, Action) for action in legal_actions)
+    assert state.amount_to_call(0) == 0
+    assert state.amount_to_call(1) == 2
 
 
-def test_observation_contains_core_fields():
+def test_bet_size_preflop_and_flop_is_small_bet():
     state = GameState()
-    state.reset_hand()
 
-    player = state.current_player
-    obs = state.get_observation(player)
+    state.street = Street.PREFLOP.value
+    assert state.bet_size() == 2
 
-    assert "public_cards" in obs
-    assert "pot" in obs
-    assert "current_player" in obs
-    assert "legal_actions" in obs
-    assert "amount_to_call" in obs
-
-    # Accept either naming style.
-    assert "private_cards" in obs or "hole_cards" in obs or "private_card" in obs
+    state.street = Street.FLOP.value
+    assert state.bet_size() == 2
 
 
-def test_apply_check_call_records_action():
+def test_bet_size_turn_and_river_is_big_bet():
     state = GameState()
-    state.reset_hand()
 
-    if Action.CHECK_CALL not in state.legal_actions():
-        pytest.skip("CHECK_CALL not legal in initial state")
+    state.street = Street.TURN.value
+    assert state.bet_size() == 4
 
-    state.apply_action(Action.CHECK_CALL)
-
-    assert len(state.action_history) >= 1
-    assert state.terminal is False
+    state.street = Street.RIVER.value
+    assert state.bet_size() == 4
 
 
-def test_bet_raise_changes_pot_or_contributions():
+def test_round_not_over_with_no_actions():
     state = GameState()
-    state.reset_hand()
+    state.round_bets = [0, 0]
+    state.actions_this_round = []
 
-    if Action.BET_RAISE not in state.legal_actions():
-        pytest.skip("BET_RAISE not legal in initial state")
-
-    old_pot = state.pot
-    old_contributions = state.player_contributions.copy()
-
-    state.apply_action(Action.BET_RAISE)
-
-    assert state.pot > old_pot
-    assert state.player_contributions != old_contributions
-    assert len(state.action_history) >= 1
+    assert state.is_round_over() is False
 
 
-def test_fold_ends_hand_when_facing_bet():
+def test_round_not_over_with_only_one_action():
     state = GameState()
-    state.reset_hand()
+    state.round_bets = [0, 0]
+    state.actions_this_round = [Action.CHECK_CALL]
 
-    if Action.BET_RAISE not in state.legal_actions():
-        pytest.skip("BET_RAISE not legal in initial state")
-
-    state.apply_action(Action.BET_RAISE)
-
-    if Action.FOLD not in state.legal_actions():
-        pytest.skip("FOLD not legal after bet/raise")
-
-    folded_player = state.current_player
-    state.apply_action(Action.FOLD)
-
-    assert state.terminal is True
-    assert state.folded_player == folded_player
-    assert sum(state.payoffs) == 0
+    assert state.is_round_over() is False
 
 
-def test_illegal_action_raises_value_error():
+def test_round_over_after_check_check():
     state = GameState()
-    state.reset_hand()
+    state.round_bets = [0, 0]
+    state.actions_this_round = [Action.CHECK_CALL, Action.CHECK_CALL]
 
-    # FOLD is often illegal if there is no bet to call.
-    if Action.FOLD in state.legal_actions():
-        pytest.skip("FOLD is legal in this state, cannot use as illegal action test")
-
-    with pytest.raises(ValueError):
-        state.apply_action(Action.FOLD)
+    assert state.is_round_over() is True
 
 
-def test_clone_is_independent():
+def test_round_not_over_after_bet_before_response():
     state = GameState()
-    state.reset_hand()
+    state.round_bets = [2, 0]
+    state.actions_this_round = [Action.BET_RAISE]
+
+    assert state.is_round_over() is False
+
+
+def test_round_over_after_bet_call():
+    state = GameState()
+    state.round_bets = [2, 2]
+    state.actions_this_round = [Action.BET_RAISE, Action.CHECK_CALL]
+
+    assert state.is_round_over() is True
+
+
+def test_round_not_over_when_bets_are_unequal_even_after_two_actions():
+    state = GameState()
+    state.round_bets = [4, 2]
+    state.actions_this_round = [Action.BET_RAISE, Action.CHECK_CALL]
+
+    assert state.is_round_over() is False
+
+
+def test_clone_returns_independent_state_object():
+    state = GameState()
+    state.player_cards = [[1, 2], [3, 4]]
+    state.public_cards = [5, 6, 7]
+    state.player_contributions = [1, 2]
+    state.round_bets = [1, 2]
+    state.actions_this_round = [Action.CHECK_CALL]
+    state.action_history = [(0, Street.PREFLOP.value, Action.CHECK_CALL, 1)]
+    state.payoffs = [10, -10]
 
     cloned = state.clone()
 
-    cloned.pot += 10
+    assert cloned is not state
+    assert cloned.player_cards == state.player_cards
+    assert cloned.public_cards == state.public_cards
+    assert cloned.player_contributions == state.player_contributions
+    assert cloned.round_bets == state.round_bets
+    assert cloned.actions_this_round == state.actions_this_round
+    assert cloned.action_history == state.action_history
+    assert cloned.payoffs == state.payoffs
+
+    cloned.player_cards[0].append(99)
+    cloned.public_cards.append(88)
     cloned.player_contributions[0] += 10
+    cloned.round_bets[0] += 10
+    cloned.actions_this_round.append(Action.BET_RAISE)
+    cloned.action_history.append((1, Street.FLOP.value, Action.BET_RAISE, 0))
+    cloned.payoffs[0] += 100
 
-    assert cloned.pot != state.pot
-    assert cloned.player_contributions != state.player_contributions
+    assert state.player_cards == [[1, 2], [3, 4]]
+    assert state.public_cards == [5, 6, 7]
+    assert state.player_contributions == [1, 2]
+    assert state.round_bets == [1, 2]
+    assert state.actions_this_round == [Action.CHECK_CALL]
+    assert state.action_history == [(0, Street.PREFLOP.value, Action.CHECK_CALL, 1)]
+    assert state.payoffs == [10, -10]
 
 
-def test_payoffs_are_zero_sum_after_fold_terminal():
+def test_clone_preserves_terminal_fields():
     state = GameState()
-    state.reset_hand()
+    state.terminal = True
+    state.folded_player = 1
+    state.payoffs = [3, -3]
 
-    if Action.BET_RAISE not in state.legal_actions():
-        pytest.skip("BET_RAISE not legal in initial state")
+    cloned = state.clone()
 
-    state.apply_action(Action.BET_RAISE)
+    assert cloned.terminal is True
+    assert cloned.folded_player == 1
+    assert cloned.payoffs == [3, -3]
 
-    if Action.FOLD not in state.legal_actions():
-        pytest.skip("FOLD not legal after bet/raise")
 
-    state.apply_action(Action.FOLD)
+def test_deepcopy_still_works_for_game_state():
+    state = GameState()
+    state.player_cards = [[1, 2], [3, 4]]
 
-    assert state.terminal is True
-    assert sum(state.payoffs) == 0
+    copied = deepcopy(state)
+    copied.player_cards[0].append(99)
+
+    assert state.player_cards == [[1, 2], [3, 4]]
+    assert copied.player_cards == [[1, 2, 99], [3, 4]]

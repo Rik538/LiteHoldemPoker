@@ -77,12 +77,12 @@ def test_mccfr_sample_action_is_seeded():
     trainer_b = make_trainer(seed=123)
 
     actions_a = [
-        trainer_a.sample_action(strategy, legal_actions)
+        trainer_a.sample_action( legal_actions, strategy)
         for _ in range(20)
     ]
 
     actions_b = [
-        trainer_b.sample_action(strategy, legal_actions)
+        trainer_b.sample_action( legal_actions, strategy)
         for _ in range(20)
     ]
 
@@ -90,10 +90,10 @@ def test_mccfr_sample_action_is_seeded():
 
 
 def test_mccfr_sample_action_rejects_empty_actions():
-    trainer = make_trainer()
+    trainer = make_trainer(seed=123)
 
-    with pytest.raises(ValueError):
-        trainer.sample_action([0.0, 0.5, 0.5], [])
+    with pytest.raises(ValueError, match="empty legal_actions"):
+        trainer.sample_action([], [0.0, 0.5, 0.5])
 
 
 def test_mccfr_external_sampling_cfr_direct_call():
@@ -104,6 +104,7 @@ def test_mccfr_external_sampling_cfr_direct_call():
 
     value = trainer.external_sampling_cfr(
         state=env.state,
+        env = env,
         traverser=0,
         reach_traverser=1.0,
         reach_opponent=1.0,
@@ -230,17 +231,18 @@ def test_mccfr_terminal_state_returns_traverser_payoff():
     env.reset()
     state = env.state
 
-    if Action.BET_RAISE in state.legal_actions():
-        state.apply_action(Action.BET_RAISE)
+    if Action.BET_RAISE in env.legal_actions():
+        env.apply_action(Action.BET_RAISE)
 
-    if Action.FOLD in state.legal_actions():
-        state.apply_action(Action.FOLD)
+    if Action.FOLD in env.legal_actions():
+        env.apply_action(Action.FOLD)
 
     if not state.terminal:
         pytest.skip("Could not create terminal state through simple bet/fold sequence")
 
     value_p0 = trainer.external_sampling_cfr(
         state=state,
+        env=env,
         traverser=0,
         reach_traverser=1.0,
         reach_opponent=1.0,
@@ -248,6 +250,7 @@ def test_mccfr_terminal_state_returns_traverser_payoff():
 
     value_p1 = trainer.external_sampling_cfr(
         state=state,
+        env=env,
         traverser=1,
         reach_traverser=1.0,
         reach_opponent=1.0,

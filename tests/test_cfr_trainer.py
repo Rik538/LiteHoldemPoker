@@ -157,7 +157,7 @@ def test_cfr_terminal_state_returns_player_zero_payoff():
     if state.terminal:
         pytest.skip("State unexpectedly terminal after reset")
 
-    legal_actions = state.legal_actions()
+    legal_actions = env.legal_actions()
 
     if len(legal_actions) == 0:
         pytest.skip("No legal actions after reset")
@@ -166,16 +166,16 @@ def test_cfr_terminal_state_returns_player_zero_payoff():
     if not state.terminal:
         from lite_holdem_ai.game.actions import Action
 
-        if Action.BET_RAISE in state.legal_actions():
-            state.apply_action(Action.BET_RAISE)
+        if Action.BET_RAISE in env.legal_actions():
+            env.apply_action(Action.BET_RAISE)
 
-        if Action.FOLD in state.legal_actions():
-            state.apply_action(Action.FOLD)
+        if Action.FOLD in env.legal_actions():
+            env.apply_action(Action.FOLD)
 
     if not state.terminal:
         pytest.skip("Could not create terminal state through simple bet/fold sequence")
 
-    value = trainer.cfr(state, 1.0, 1.0)
+    value = trainer.cfr(state, env, 1.0, 1.0)
 
     assert value == state.payoffs[0]
     assert sum(state.payoffs) == 0
