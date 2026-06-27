@@ -17,6 +17,14 @@ class BaseCFRTrainer():
             node = CFRNode()
             node.legal_actions = legal_actions.copy()
             self.nodes[info_set_key] = node
+            
+        node = self.nodes[info_set_key]
+
+        if set(node.legal_actions) != set(legal_actions):
+            raise ValueError(
+                f"Inconsistent legal actions for infoset {info_set_key}: "
+                f"existing={node.legal_actions}, new={legal_actions}"
+            )
 
         return self.nodes[info_set_key]
     
@@ -75,6 +83,20 @@ class BaseCFRTrainer():
     def load_checkpoint(self, path):
         with open(path, "rb") as f:
             data = pickle.load(f)
+            
+        expected = {
+            "game": "LiteHoldem",
+            "bet_sizes": [2, 4],
+            "max_raises": 2,
+        }
+        
+        for key, expected_value in expected.items():
+            actual_value = data.get(key)
+            if actual_value != expected_value:
+                raise ValueError(
+                    f"Incompatible checkpoint field {key}: "
+                    f"{actual_value} != {expected_value}"
+                )
 
         checkpoint_builder_name = data.get("infoset_builder_name")
 
