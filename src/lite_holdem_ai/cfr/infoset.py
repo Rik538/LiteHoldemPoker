@@ -98,35 +98,32 @@ class MemoizedBucketProvider:
         self.bucket_cache = {}
         self.equity_cache = {}
 
-    def make_key(self, private_cards, public_cards, street):
+    def make_key(self, private_cards, public_cards):
         return (
             tuple(sorted(private_cards)),
             tuple(sorted(public_cards)),
-            street,
         )
-
-    def get_bucket(self, private_cards, public_cards, street):
-        key = self.make_key(private_cards, public_cards, street)
-
+    
+    def get_bucket(self, private_cards, public_cards):
+        key = self.make_key(private_cards, public_cards)
+    
         if key not in self.bucket_cache:
             self.bucket_cache[key] = self.bucket_provider.get_bucket(
                 private_cards,
                 public_cards,
-                street,
             )
-
+    
         return self.bucket_cache[key]
-
-    def get_equity(self, private_cards, public_cards, street):
-        key = self.make_key(private_cards, public_cards, street)
-
+    
+    def get_equity(self, private_cards, public_cards):
+        key = self.make_key(private_cards, public_cards)
+    
         if key not in self.equity_cache:
             self.equity_cache[key] = self.bucket_provider.get_equity(
                 private_cards,
                 public_cards,
-                street,
             )
-
+    
         return self.equity_cache[key]
     
     

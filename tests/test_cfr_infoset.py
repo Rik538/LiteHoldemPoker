@@ -31,42 +31,36 @@ def add_cache_entry(cache, private_cards, public_cards, bucket=3):
     )
 
 
-def test_memoized_bucket_provider_keeps_bucket_and_equity_caches_separate():
+def test_memoized_provider_matches_cached_provider_interface():
     class FakeProvider:
-        def get_bucket(self, private_cards, public_cards, street):
+        def get_bucket(self, private_cards, public_cards):
             return 3
 
-        def get_equity(self, private_cards, public_cards, street):
+        def get_equity(self, private_cards, public_cards):
             return 0.72
 
     provider = MemoizedBucketProvider(FakeProvider())
 
-    private_cards = [1, 2]
-    public_cards = [3, 4, 5]
-    street = 1
-
-    bucket = provider.get_bucket(private_cards, public_cards, street)
-    equity = provider.get_equity(private_cards, public_cards, street)
-
-    assert bucket == 3
-    assert equity == 0.72
+    assert provider.get_bucket([1, 2], [3, 4, 5]) == 3
+    assert provider.get_equity([1, 2], [3, 4, 5]) == 0.72
+    
     
 def test_memoized_bucket_provider_keeps_equity_and_bucket_caches_separate_reverse_order():
     class FakeProvider:
-        def get_bucket(self, private_cards, public_cards, street):
+        def get_bucket(self, private_cards, public_cards):
             return 3
 
-        def get_equity(self, private_cards, public_cards, street):
+        def get_equity(self, private_cards, public_cards):
             return 0.72
 
     provider = MemoizedBucketProvider(FakeProvider())
 
     private_cards = [1, 2]
     public_cards = [3, 4, 5]
-    street = 1
 
-    equity = provider.get_equity(private_cards, public_cards, street)
-    bucket = provider.get_bucket(private_cards, public_cards, street)
+
+    equity = provider.get_equity(private_cards, public_cards)
+    bucket = provider.get_bucket(private_cards, public_cards)
 
     assert equity == 0.72
     assert bucket == 3

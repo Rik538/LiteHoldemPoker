@@ -73,9 +73,8 @@ class MCCFRTrainer(BaseCFRTrainer):
         if not legal_actions:
             raise RuntimeError("Non-terminal MCCFR state has no legal actions")
 
-        info_key = self.infoset_builder.from_observation(
-            env.observe(player, state)
-        )
+        observation = env.observe(player, state)
+        info_key = self.infoset_builder.from_observation(observation)
         node = self.get_node(info_key, legal_actions)
 
 
@@ -200,7 +199,7 @@ class MCCFRTrainer(BaseCFRTrainer):
         save_every: int | None = 1000,
         print_every: int | None = 100,
         update_both_players: bool = True,
-        averaging_start_iteration: int = 0,
+        average_starting_iteration: int = 0,
     ):
         if load_checkpoint:
             self.load_checkpoint(path)
@@ -215,7 +214,7 @@ class MCCFRTrainer(BaseCFRTrainer):
             env.reset()
             initial_state = env.state
             
-            average_strategy = iteration >= averaging_start_iteration
+            average_strategy = iteration >= average_starting_iteration
         
             if update_both_players:
                 traversers = [0, 1]

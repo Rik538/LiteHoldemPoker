@@ -72,7 +72,7 @@ class LiteHoldemEnv:
         state = self.state if state is None else state
 
         if state.public_cards:
-            raise Exception(
+            raise ValueError(
                 f"Public cards present when dealing flop: {state.public_cards}. "
                 "Expected no public cards."
             )
@@ -83,7 +83,7 @@ class LiteHoldemEnv:
         state = self.state if state is None else state
 
         if len(state.public_cards) != 3:
-            raise Exception(
+            raise ValueError(
                 f"Incorrect number of cards for turn: {state.public_cards}. "
                 "Expected 3 cards."
             )
@@ -94,7 +94,7 @@ class LiteHoldemEnv:
         state = self.state if state is None else state
 
         if len(state.public_cards) != 4:
-            raise Exception(
+            raise ValueError(
                 f"Incorrect number of cards for river: {state.public_cards}. "
                 "Expected 4 cards."
             )

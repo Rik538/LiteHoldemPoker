@@ -36,7 +36,7 @@ class CFRAgent(Agent):
 
         avg_strategy = node.average_strategy(legal_actions)
 
-        return self.sample_action(avg_strategy, legal_actions)
+        return self.sample_action(legal_actions, avg_strategy)
 
-    def sample_action(self, strategy, legal_actions):
+    def sample_action(self, legal_actions, strategy):
         return sample_strategy_action(self.rng, legal_actions, strategy)

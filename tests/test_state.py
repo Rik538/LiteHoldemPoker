@@ -96,3 +96,11 @@ def test_deepcopy_still_works_for_game_state():
 
     assert state.player_cards == [[1, 2], [3, 4]]
     assert copied.player_cards == [[1, 2, 99], [3, 4]]
+    
+def test_clone_has_independent_deck():
+    state = GameState()
+    clone = state.clone()
+
+    clone.deck.draw_card()
+
+    assert len(clone.deck.deck) != len(state.deck.deck)
