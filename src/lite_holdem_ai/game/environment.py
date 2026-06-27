@@ -21,30 +21,9 @@ class LiteHoldemEnv:
         return self.state.current_player
 
     def reset(self):
-        self.state.deck.reset_deck()
+        self.state = GameState()
         self.state.deck.shuffle_deck()
-
-        self.state.player_cards = [[], []]
-        self.state.public_cards = []
-
-        self.state.pot = 0
-        self.state.player_contributions = [0, 0]
-
-        self.state.current_player = 0
-        self.state.round_bets = [0, 0]
-
-        self.state.terminal = False
-        self.state.folded_player = None
-
-        self.state.action_history = []
-        self.state.actions_this_round = []
-        self.state.raises_this_round = 0
-        self.state.payoffs = [0, 0]
-
-        self.state.street = Street.PREFLOP.value
-
         self.setup_preflop(self.state)
-
         return self.observe(self.state.current_player, self.state)
 
     def setup_preflop(self, state: GameState | None = None):
@@ -315,11 +294,16 @@ class LiteHoldemEnv:
         return max(state.round_bets) - state.round_bets[player]
     
     
-    def bet_size(self,state: GameState | None = None):
+    def bet_size(self, state: GameState | None = None):
         state = self.state if state is None else state
-        if state.street in [Street.PREFLOP.value,Street.FLOP.value]:
-            return 2 
-        return 4
+    
+        if state.street in [Street.PREFLOP.value, Street.FLOP.value]:
+            return 2
+    
+        if state.street in [Street.TURN.value, Street.RIVER.value]:
+            return 4
+    
+        raise ValueError(f"Unknown street: {state.street}")
         
     def is_round_over(self,state: GameState | None = None):
         state = self.state if state is None else state

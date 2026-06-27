@@ -282,7 +282,7 @@ This is controlled by:
 ```python
 trainer.train(
     iterations=100_000,
-    average_starting_iteration=75_000,
+    average_start_iteration=75_000,
 )
 ```
 

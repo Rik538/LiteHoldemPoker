@@ -9,6 +9,8 @@ from lite_holdem_ai.cfr.node import ACTION_INDEX, CFRNode
 import pickle
 
 class BaseCFRTrainer():
+    trainer_type = "BaseCFR"
+    trainer_version = "base_v1"
     
     def get_node(self, info_set_key, legal_actions):
         if info_set_key not in self.nodes:
@@ -55,13 +57,14 @@ class BaseCFRTrainer():
                 break
 
     def save_checkpoint(self, path):
+
         data = {
             "nodes": self.nodes,
             "iterations_trained": self.iterations_trained,
             "infoset_builder_name": self.infoset_builder.name,
             "game": "LiteHoldem",
-            "trainer_version": "cfr_v1",
-            "key_version": "equity_bucket_v1",
+            "trainer_type": self.trainer_type,
+            "trainer_version": self.trainer_version,
             "bet_sizes": [2, 4],
             "max_raises": 2,
         }

@@ -16,9 +16,14 @@ import random
 
 
 from lite_holdem_ai.cfr.base_cfr_trainer import BaseCFRTrainer, ACTION_INDEX
+from lite_holdem_ai.cfr.sampling import sample_strategy_action
+
 
 
 class MCCFRTrainer(BaseCFRTrainer):
+    trainer_type = "ExternalSamplingMCCFR"
+    trainer_version = "mccfr_v1"
+
     def __init__(
         self,
         infoset_builder,
@@ -33,21 +38,7 @@ class MCCFRTrainer(BaseCFRTrainer):
         self.rng = random.Random(seed)
     
     def sample_action(self, legal_actions, strategy):
-        if not legal_actions:
-            raise ValueError("Cannot sample action from empty legal_actions")
-    
-        roll = self.rng.random()
-        cumulative = 0.0
-    
-        for action in legal_actions:
-            idx = ACTION_INDEX[action]
-            cumulative += strategy[idx]
-    
-            if roll <= cumulative:
-                return action
-    
-        # Fallback for floating point rounding
-        return legal_actions[-1]
+        return sample_strategy_action(self.rng, legal_actions, strategy)
 
     def external_sampling_cfr(
         self,
@@ -82,10 +73,11 @@ class MCCFRTrainer(BaseCFRTrainer):
         if not legal_actions:
             raise RuntimeError("Non-terminal MCCFR state has no legal actions")
 
-        info_key = self.infoset_builder.from_state(env, player)
+        info_key = self.infoset_builder.from_observation(
+            env.observe(player, state)
+        )
         node = self.get_node(info_key, legal_actions)
 
-        strategy = node.get_strategy(legal_actions,average_strategy)
 
         if player == traverser:
             strategy = node.get_strategy(
@@ -181,7 +173,12 @@ class MCCFRTrainer(BaseCFRTrainer):
         """
         At opponent nodes, sample one action from the current strategy.
         """
-        sampled_action = self.sample_action(legal_actions,strategy)
+        sampled_action = sample_strategy_action(
+            self.rng,
+            legal_actions,
+            strategy,
+        )
+        
         sampled_idx = ACTION_INDEX[sampled_action]
     
         next_state = env.next_state(state,sampled_action)

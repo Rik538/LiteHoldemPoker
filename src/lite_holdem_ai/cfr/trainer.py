@@ -9,6 +9,9 @@ from lite_holdem_ai.cfr.base_cfr_trainer import BaseCFRTrainer, ACTION_INDEX
 
 
 class CFRTrainer(BaseCFRTrainer):
+    trainer_type = "CFR"
+    trainer_version = "cfr_v1"
+    
     def __init__(self, infoset_builder, env_factory):
         self.infoset_builder = infoset_builder
         self.env_factory = env_factory
@@ -25,10 +28,15 @@ class CFRTrainer(BaseCFRTrainer):
         if not legal_actions:
             raise RuntimeError("Non-terminal CFR state has no legal actions")
 
-        info_key = self.infoset_builder.from_state(env, player)
+        info_key = self.infoset_builder.from_observation(
+            env.observe(player, state)
+        )
         node = self.get_node(info_key, legal_actions)
 
-        strategy = node.get_strategy(legal_actions)
+        strategy = node.get_strategy(
+            legal_actions,
+            accumulate_strategy=False,
+        )
 
         action_values = {}
         node_value = 0.0

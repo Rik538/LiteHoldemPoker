@@ -9,7 +9,7 @@ Created on Sun May 17 17:45:09 2026
 
 from dataclasses import dataclass, field
 from .deck import Deck
-from .streets import Street
+
 
 
 @dataclass
@@ -33,7 +33,7 @@ class GameState:
     raises_this_round: int = 0
 
     actions_this_round: list = field(default_factory=list)
-    payoffs: list[int] = field(default_factory=lambda: [0, 0])
+    payoffs: list[float] = field(default_factory=lambda: [0, 0])
     
     button_player: int = 0
     small_blind: int = 1

@@ -9,7 +9,7 @@ Created on Sun Jun  7 13:04:03 2026
 import random
 
 from lite_holdem_ai.agents.base import Agent
-from lite_holdem_ai.cfr.node import ACTION_INDEX
+from lite_holdem_ai.cfr.sampling import sample_strategy_action
 
 
 
@@ -39,14 +39,4 @@ class CFRAgent(Agent):
         return self.sample_action(avg_strategy, legal_actions)
 
     def sample_action(self, strategy, legal_actions):
-        r = self.rng.random()
-        cumulative = 0.0
-
-        for action in legal_actions:
-            idx = ACTION_INDEX[action]
-            cumulative += strategy[idx]
-
-            if r <= cumulative:
-                return action
-
-        return legal_actions[-1]
+        return sample_strategy_action(self.rng, legal_actions, strategy)
