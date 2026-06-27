@@ -79,9 +79,16 @@ class CFRTrainer(BaseCFRTrainer):
 
         return node_value
 
-    def train(self, iterations, path=None, load_checkpoint=False):
-        if load_checkpoint:
-            self.load_checkpoint(path)
+    def train(
+        self,
+        iterations: int,
+        path=None,
+        load_checkpoint: bool = False,
+        save_every: int | None = 1000,
+        print_every: int | None = 1000,
+    ):
+        
+        
 
         for iteration in range(1, iterations + 1):
             env = self.env_factory()
@@ -89,17 +96,22 @@ class CFRTrainer(BaseCFRTrainer):
             state = env.state
 
             utility = self.cfr(state,env, 1.0, 1.0)
+            
 
             self.iterations_trained += 1
 
-            if iteration % 100 == 0:
+            if print_every is not None and iteration % print_every == 0:
                 print(
                     f"Iteration {self.iterations_trained} | "
                     f"infosets: {len(self.nodes)} | "
                     f"utility: {utility:.4f}"
                 )
 
-            if path and iteration % 10 == 0:
-                self.save_checkpoint(path)
+            if path is not None and save_every is not None:
+                if iteration % save_every == 0:
+                    self.save_checkpoint(path)
+                    
+        if path is not None:
+            self.save_checkpoint(path)
 
     
