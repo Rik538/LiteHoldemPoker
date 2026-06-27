@@ -44,23 +44,7 @@ class GameState:
     MAX_RAISES_PER_ROUND = 2
     
         
-    def amount_to_call(self,player):
-        return max(self.round_bets) - self.round_bets[player]
     
-    
-    def bet_size(self):
-        if self.street in [Street.PREFLOP.value,Street.FLOP.value]:
-            return 2 
-        return 4
-        
-    def is_round_over(self):
-        if self.terminal:
-            return True
-    
-        return (
-            len(self.actions_this_round) >= 2
-            and self.round_bets[0] == self.round_bets[1]
-        )
     
     def clone(self):
         new_state = GameState.__new__(GameState)

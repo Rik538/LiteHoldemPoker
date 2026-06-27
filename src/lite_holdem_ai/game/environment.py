@@ -76,7 +76,7 @@ class LiteHoldemEnv:
         if state.terminal:
             return []
 
-        to_call = state.amount_to_call(state.current_player)
+        to_call = self.amount_to_call(state.current_player,state)
         can_raise = state.raises_this_round < state.MAX_RAISES_PER_ROUND
 
         if to_call == 0:
@@ -149,7 +149,7 @@ class LiteHoldemEnv:
             raise ValueError(f"Illegal action: {action}")
 
         current_player = state.current_player
-        to_call = state.amount_to_call(current_player)
+        to_call = self.amount_to_call(current_player,state)
 
         state.actions_this_round.append(action)
         state.action_history.append((current_player, state.street, action, to_call))
@@ -174,7 +174,7 @@ class LiteHoldemEnv:
             self.apply_fold(state)
             return
 
-        if state.is_round_over():
+        if self.is_round_over(state):
             self.advance_round(state)
         else:
             state.current_player = 1 - state.current_player
@@ -207,7 +207,7 @@ class LiteHoldemEnv:
     def apply_bet(self, state: GameState | None = None):
         state = self.state if state is None else state
 
-        bet_amount = state.bet_size()
+        bet_amount = self.bet_size(state)
         current_player = state.current_player
 
         state.round_bets[current_player] += bet_amount
@@ -220,7 +220,7 @@ class LiteHoldemEnv:
         state = self.state if state is None else state
 
         current_player = state.current_player
-        bet_amount = state.bet_size() + state.amount_to_call(current_player)
+        bet_amount = self.bet_size(state) + self.amount_to_call(current_player,state)
 
         state.round_bets[current_player] += bet_amount
         state.player_contributions[current_player] += bet_amount
@@ -232,7 +232,7 @@ class LiteHoldemEnv:
         state = self.state if state is None else state
 
         current_player = state.current_player
-        bet_amount = state.amount_to_call(current_player)
+        bet_amount = self.amount_to_call(current_player,state)
 
         state.round_bets[current_player] += bet_amount
         state.player_contributions[current_player] += bet_amount
@@ -292,7 +292,7 @@ class LiteHoldemEnv:
             "current_player": state.current_player,
             "button_player": state.button_player,
             "legal_actions": self.legal_actions(state),
-            "amount_to_call": state.amount_to_call(player),
+            "amount_to_call": self.amount_to_call(player,state),
             "raises_this_round": state.raises_this_round,
             "actions_this_round": state.actions_this_round.copy(),
             "action_history": state.action_history.copy(),
@@ -307,3 +307,23 @@ class LiteHoldemEnv:
         child = state.clone()
         self.apply_action(action, child)
         return child
+    
+    def amount_to_call(self,player,state: GameState | None = None):
+        state = self.state if state is None else state
+        return max(state.round_bets) - state.round_bets[player]
+    
+    
+    def bet_size(self,state: GameState | None = None):
+        state = self.state if state is None else state
+        if state.street in [Street.PREFLOP.value,Street.FLOP.value]:
+            return 2 
+        return 4
+        
+    def is_round_over(self,state: GameState | None = None):
+        state = self.state if state is None else state
+        if state.terminal:
+            return True
+        return (
+            len(state.actions_this_round) >= 2
+            and state.round_bets[0] == state.round_bets[1]
+        )

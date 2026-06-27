@@ -47,7 +47,7 @@ def test_infoset_key_from_state_matches_observation(tmp_path):
         bucket_provider = CachedEquityBucketProvider(cache)
         builder = EquityBucketInfosetKeyBuilder(bucket_provider)
 
-        key_from_state = builder.from_state(state, player)
+        key_from_state = builder.from_state(env, player)
         key_from_observation = builder.from_observation(observation)
 
         assert key_from_state == key_from_observation

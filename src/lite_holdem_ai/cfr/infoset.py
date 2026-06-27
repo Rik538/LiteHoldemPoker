@@ -13,7 +13,7 @@ class InfosetKeyBuilder(ABC):
     name = "base"
 
     @abstractmethod
-    def from_state(self, state, player):
+    def from_state(self, env, player):
         raise NotImplementedError
 
     @abstractmethod
@@ -50,26 +50,26 @@ class EquityBucketInfosetKeyBuilder(InfosetKeyBuilder):
     def __init__(self, bucket_provider):
         self.bucket_provider = bucket_provider
 
-    def from_state(self, state, player):
-        private_cards = state.player_cards[player]
-        public_cards = state.public_cards
+    def from_state(self, env, player):
+        private_cards = env.state.player_cards[player]
+        public_cards = env.state.public_cards
 
         equity_bucket = self.bucket_provider.get_bucket(
             private_cards,
             public_cards,
         )
 
-        position = 1 if player == state.button_player else 0
-        facing_bet = state.amount_to_call(player) > 0
-        street_history = self.encode_street_history(state.actions_this_round)
+        position = 1 if player == env.state.button_player else 0
+        facing_bet = env.amount_to_call(player) > 0
+        street_history = self.encode_street_history(env.state.actions_this_round)
 
         return (
             player,
-            state.street,
+            env.state.street,
             equity_bucket,
             position,
             facing_bet,
-            state.raises_this_round,
+            env.state.raises_this_round,
             street_history,
         )
 
@@ -185,29 +185,29 @@ class EquityPotBucketInfosetKeyBuilder(InfosetKeyBuilder):
     def __init__(self, bucket_provider):
         self.bucket_provider = bucket_provider
 
-    def from_state(self, state, player):
-        private_cards = state.player_cards[player]
-        public_cards = state.public_cards
+    def from_state(self, env, player):
+        private_cards = env.state.player_cards[player]
+        public_cards = env.state.public_cards
 
         equity_bucket = self.bucket_provider.get_bucket(
             private_cards,
             public_cards,
         )
         
-        pot_bucket = self.pot_bucket(state.pot)
+        pot_bucket = self.pot_bucket(env.state.pot)
 
-        position = 1 if player == state.button_player else 0
-        facing_bet = state.amount_to_call(player) > 0
-        street_history = self.encode_street_history(state.actions_this_round)
+        position = 1 if player == env.state.button_player else 0
+        facing_bet = env.amount_to_call(player) > 0
+        street_history = self.encode_street_history(env.state.actions_this_round)
 
         return (
             player,
-            state.street,
+            env.state.street,
             equity_bucket,
             pot_bucket,
             position,
             facing_bet,
-            state.raises_this_round,
+            env.state.raises_this_round,
             street_history,
         )
 
@@ -262,9 +262,9 @@ class StreetSpecificEquityPotBucketInfosetKeyBuilder(InfosetKeyBuilder):
     def __init__(self, bucket_provider):
         self.bucket_provider = bucket_provider
 
-    def from_state(self, state, player):
-        private_cards = state.player_cards[player]
-        public_cards = state.public_cards
+    def from_state(self, env, player):
+        private_cards = env.state.player_cards[player]
+        public_cards = env.state.public_cards
 
         equity = self.bucket_provider.get_equity(
             private_cards,
@@ -273,22 +273,22 @@ class StreetSpecificEquityPotBucketInfosetKeyBuilder(InfosetKeyBuilder):
         
  
         
-        equity_bucket = self.equity_bucket_for_street(equity,state.street)
+        equity_bucket = self.equity_bucket_for_street(equity,env.state.street)
         
-        pot_bucket = self.pot_bucket(state.pot)
+        pot_bucket = self.pot_bucket(env.state.pot)
 
-        position = 1 if player == state.button_player else 0
-        facing_bet = state.amount_to_call(player) > 0
-        street_history = self.encode_street_history(state.actions_this_round)
+        position = 1 if player == env.state.button_player else 0
+        facing_bet = env.amount_to_call(player,env.state) > 0
+        street_history = self.encode_street_history(env.state.actions_this_round)
 
         return (
             player,
-            state.street,
+            env.state.street,
             equity_bucket,
             pot_bucket,
             position,
             facing_bet,
-            state.raises_this_round,
+            env.state.raises_this_round,
             street_history,
         )
 
@@ -365,9 +365,9 @@ class StreetSpecificEquityBucketInfosetKeyBuilder(InfosetKeyBuilder):
     def __init__(self, bucket_provider):
         self.bucket_provider = bucket_provider
 
-    def from_state(self, state, player):
-        private_cards = state.player_cards[player]
-        public_cards = state.public_cards
+    def from_state(self, env, player):
+        private_cards = env.state.player_cards[player]
+        public_cards = env.state.public_cards
 
         equity = self.bucket_provider.get_equity(
             private_cards,
@@ -376,20 +376,20 @@ class StreetSpecificEquityBucketInfosetKeyBuilder(InfosetKeyBuilder):
         
  
         
-        equity_bucket = self.equity_bucket_for_street(equity,state.street)
+        equity_bucket = self.equity_bucket_for_street(equity,env.state.street)
         
 
-        position = 1 if player == state.button_player else 0
-        facing_bet = state.amount_to_call(player) > 0
-        street_history = self.encode_street_history(state.actions_this_round)
+        position = 1 if player == env.state.button_player else 0
+        facing_bet = env.amount_to_call(player,env.state) > 0
+        street_history = self.encode_street_history(env.state.actions_this_round)
 
         return (
             player,
-            state.street,
+            env.state.street,
             equity_bucket,
             position,
             facing_bet,
-            state.raises_this_round,
+            env.state.raises_this_round,
             street_history,
         )
 
@@ -452,9 +452,9 @@ class StreetAwarePotBucketNoHistoryInfosetKeyBuilder(InfosetKeyBuilder):
     def __init__(self, bucket_provider):
         self.bucket_provider = bucket_provider
 
-    def from_state(self, state, player):
-        private_cards = state.player_cards[player]
-        public_cards = state.public_cards
+    def from_state(self, env, player):
+        private_cards = env.state.player_cards[player]
+        public_cards = env.state.public_cards
 
         equity = self.bucket_provider.get_equity(
             private_cards,
@@ -463,21 +463,21 @@ class StreetAwarePotBucketNoHistoryInfosetKeyBuilder(InfosetKeyBuilder):
         
  
         
-        equity_bucket = self.equity_bucket_for_street(equity,state.street)
+        equity_bucket = self.equity_bucket_for_street(equity,env.state.street)
         
-        pot_bucket = self.pot_bucket(state.pot)
+        pot_bucket = self.pot_bucket(env.state.pot)
 
-        position = 1 if player == state.button_player else 0
-        facing_bet = state.amount_to_call(player) > 0
+        position = 1 if player == env.state.button_player else 0
+        facing_bet = env.amount_to_call(player,env.state) > 0
 
         return (
             player,
-            state.street,
+            env.state.street,
             equity_bucket,
             pot_bucket,
             position,
             facing_bet,
-            state.raises_this_round,
+            env.state.raises_this_round,
         )
 
     def from_observation(self, observation):
@@ -550,9 +550,9 @@ class StreetAwarePotBucket7InfosetKeyBuilder(InfosetKeyBuilder):
     def __init__(self, bucket_provider):
         self.bucket_provider = bucket_provider
 
-    def from_state(self, state, player):
-        private_cards = state.player_cards[player]
-        public_cards = state.public_cards
+    def from_state(self, env, player):
+        private_cards = env.state.player_cards[player]
+        public_cards = env.state.public_cards
 
         equity = self.bucket_provider.get_equity(
             private_cards,
@@ -561,21 +561,21 @@ class StreetAwarePotBucket7InfosetKeyBuilder(InfosetKeyBuilder):
         
  
         
-        equity_bucket = self.equity_bucket_for_street(equity,state.street)
+        equity_bucket = self.equity_bucket_for_street(equity,env.state.street)
         
-        pot_bucket = self.pot_bucket(state.pot)
+        pot_bucket = self.pot_bucket(env.state.pot)
 
-        position = 1 if player == state.button_player else 0
-        facing_bet = state.amount_to_call(player) > 0
+        position = 1 if player == env.state.button_player else 0
+        facing_bet = env.amount_to_call(player,env.state) > 0
 
         return (
             player,
-            state.street,
+            env.state.street,
             equity_bucket,
             pot_bucket,
             position,
             facing_bet,
-            state.raises_this_round,
+            env.state.raises_this_round,
         )
 
     def from_observation(self, observation):

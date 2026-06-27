@@ -137,7 +137,7 @@ def test_apply_action_call_matches_bets_and_updates_pot():
 
     state = env.state.clone()
     player = state.current_player
-    to_call = state.amount_to_call(player)
+    to_call = env.amount_to_call(player,env.state)
     pot_before = state.pot
     contribution_before = state.player_contributions[player]
 
@@ -456,3 +456,111 @@ def test_cannot_apply_action_to_terminal_state():
 
     with pytest.raises(ValueError, match="terminal state"):
         env.apply_action(Action.CHECK_CALL, state)
+
+def test_amount_to_call_when_player_is_behind():
+    env = make_env()
+    env.reset()
+    env.state.round_bets = [1, 2]
+    
+    assert env.amount_to_call(0,env.state) == 1
+    assert env.amount_to_call(1,env.state) == 0        
+    
+def test_amount_to_call_when_bets_are_equal():
+    env = make_env()
+    env.reset()
+    env.state.round_bets = [2, 2]
+
+    assert env.amount_to_call(0,env.state) == 0
+    assert env.amount_to_call(1,env.state) == 0   
+        
+def test_amount_to_call_never_goes_negative():
+    env = make_env()
+    env.reset()
+    env.state.round_bets = [4, 2]
+
+    assert env.amount_to_call(0,env.state) == 0
+    assert env.amount_to_call(1,env.state) == 2
+
+
+def test_bet_size_preflop_and_flop_is_small_bet():
+    env = make_env()
+    env.reset()
+    state = env.state
+
+    state.street = Street.PREFLOP.value
+    assert env.bet_size(state) == 2
+
+    state.street = Street.FLOP.value
+    assert env.bet_size(state) == 2
+    
+def test_bet_size_turn_and_river_is_big_bet():
+    env = make_env()
+    env.reset()
+    state = env.state
+
+    state.street = Street.TURN.value
+    assert env.bet_size(state) == 4
+
+    state.street = Street.RIVER.value
+    assert env.bet_size(state) == 4
+    
+def test_round_not_over_with_no_actions():
+    env = make_env()
+    env.reset()
+    state = env.state
+    state.round_bets = [0, 0]
+    state.actions_this_round = []
+
+    assert env.is_round_over(state) is False
+
+
+def test_round_not_over_with_only_one_action():
+    env = make_env()
+    env.reset()
+    state = env.state
+    state.round_bets = [0, 0]
+    state.actions_this_round = [Action.CHECK_CALL]
+
+    assert env.is_round_over(state) is False
+    
+
+
+def test_round_over_after_check_check():
+    env = make_env()
+    env.reset()
+    state = env.state
+    state.round_bets = [0, 0]
+    state.actions_this_round = [Action.CHECK_CALL, Action.CHECK_CALL]
+
+    assert env.is_round_over(state) is True
+
+
+def test_round_not_over_after_bet_before_response():
+    env = make_env()
+    env.reset()
+    state = env.state
+    state.round_bets = [2, 0]
+    state.actions_this_round = [Action.BET_RAISE]
+
+    assert env.is_round_over(state) is False
+
+def test_round_over_after_bet_call():
+    env = make_env()
+    env.reset()
+    state = env.state
+    state.round_bets = [2, 2]
+    state.actions_this_round = [Action.BET_RAISE, Action.CHECK_CALL]
+
+    assert env.is_round_over(state) is True
+
+
+def test_round_not_over_when_bets_are_unequal_even_after_two_actions():
+    env = make_env()
+    env.reset()
+    state = env.state
+    state.round_bets = [4, 2]
+    state.actions_this_round = [Action.BET_RAISE, Action.CHECK_CALL]
+
+    assert env.is_round_over(state) is False
+        
+        

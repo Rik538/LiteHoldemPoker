@@ -33,7 +33,7 @@ class CFRTrainer:
         if not legal_actions:
             raise RuntimeError("Non-terminal CFR state has no legal actions")
 
-        info_key = self.infoset_builder.from_state(state, player)
+        info_key = self.infoset_builder.from_state(env, player)
         node = self.get_node(info_key, legal_actions)
 
         strategy = node.get_strategy(legal_actions)
