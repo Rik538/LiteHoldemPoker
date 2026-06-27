@@ -17,16 +17,16 @@ class BaseCFRTrainer():
             node = CFRNode()
             node.legal_actions = legal_actions.copy()
             self.nodes[info_set_key] = node
-            
+    
         node = self.nodes[info_set_key]
-
+    
         if set(node.legal_actions) != set(legal_actions):
             raise ValueError(
                 f"Inconsistent legal actions for infoset {info_set_key}: "
                 f"existing={node.legal_actions}, new={legal_actions}"
             )
-
-        return self.nodes[info_set_key]
+    
+        return node
     
     def average_strategy(self):
         strategy = {}
