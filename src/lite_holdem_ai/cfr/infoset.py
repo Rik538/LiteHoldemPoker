@@ -82,7 +82,7 @@ class EquityBucketInfosetKeyBuilder(InfosetKeyBuilder):
             public_cards,
         )
 
-        player = observation["current_player"]
+        player = observation["player"]
         street = observation["street"]
 
         # These should be added to observation if not already present.
@@ -222,7 +222,7 @@ class EquityPotBucketInfosetKeyBuilder(InfosetKeyBuilder):
         
         pot_bucket = self.pot_bucket(observation["pot"])
 
-        player = observation["current_player"]
+        player = observation["player"]
         street = observation["street"]
 
         # These should be added to observation if not already present.
@@ -307,7 +307,7 @@ class StreetSpecificEquityPotBucketInfosetKeyBuilder(InfosetKeyBuilder):
         
         pot_bucket = self.pot_bucket(observation["pot"])
 
-        player = observation["current_player"]
+        player = observation["player"]
         street = observation["street"]
         
         equity_bucket = self.equity_bucket_for_street(equity,street)
@@ -404,7 +404,7 @@ class StreetSpecificEquityBucketInfosetKeyBuilder(InfosetKeyBuilder):
         
 
 
-        player = observation["current_player"]
+        player = observation["player"]
         street = observation["street"]
         
         equity_bucket = self.equity_bucket_for_street(equity,street)
@@ -495,7 +495,7 @@ class StreetAwarePotBucketNoHistoryInfosetKeyBuilder(InfosetKeyBuilder):
         
         pot_bucket = self.pot_bucket(observation["pot"])
 
-        player = observation["current_player"]
+        player = observation["player"]
         street = observation["street"]
         
         equity_bucket = self.equity_bucket_for_street(equity,street)
@@ -590,7 +590,7 @@ class StreetAwarePotBucket7InfosetKeyBuilder(InfosetKeyBuilder):
         
         pot_bucket = self.pot_bucket(observation["pot"])
 
-        player = observation["current_player"]
+        player = observation["player"]
         street = observation["street"]
         
         equity_bucket = self.equity_bucket_for_street(equity,street)

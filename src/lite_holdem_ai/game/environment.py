@@ -182,26 +182,27 @@ class LiteHoldemEnv:
     def advance_round(self, state: GameState | None = None):
         state = self.state if state is None else state
 
-        state.street += 1
+        
         street = state.street
 
         state.round_bets = [0, 0]
         state.actions_this_round = []
         state.raises_this_round = 0
 
-        if street == Street.FLOP.value:
+        if street == Street.PREFLOP.value:
             self.deal_flop(state)
 
-        elif street == Street.TURN.value:
+        elif street == Street.FLOP.value:
             self.deal_turn(state)
 
-        elif street == Street.RIVER.value:
+        elif street == Street.TURN.value:
             self.deal_river(state)
 
         else:
             self.resolve_showdown(state)
             return
-
+        
+        state.street += 1
         state.current_player = 1 - state.button_player
 
     def apply_bet(self, state: GameState | None = None):
@@ -289,6 +290,7 @@ class LiteHoldemEnv:
             "pot": state.pot,
             "player_contributions": state.player_contributions.copy(),
             "round_bets": state.round_bets.copy(),
+            "player": player,
             "current_player": state.current_player,
             "button_player": state.button_player,
             "legal_actions": self.legal_actions(state),
