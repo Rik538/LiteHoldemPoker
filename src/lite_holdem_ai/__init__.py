@@ -6,7 +6,7 @@ Public API exports for the main game environment, agents, CFR tools,
 equity tools, and evaluation utilities.
 """
 
-__version__ = "0.8.2"
+__version__ = "0.9.0"
 
 
 # Game
