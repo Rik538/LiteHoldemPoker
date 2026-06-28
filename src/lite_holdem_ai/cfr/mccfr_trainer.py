@@ -29,12 +29,20 @@ class MCCFRTrainer(BaseCFRTrainer):
         infoset_builder,
         env_factory,
         seed: int | None = None,
+        average_weighting = "uniform",
     ):
         self.infoset_builder = infoset_builder
         self.env_factory = env_factory
         self.nodes = {}
         self.iterations_trained = 0
+        
+        self.average_weighting = average_weighting
 
+        if average_weighting not in {"uniform", "linear"}:
+            raise ValueError(
+                f"Unknown average_weighting: {average_weighting}"
+            )
+            
         self.rng = random.Random(seed)
     
     def sample_action(self, legal_actions, strategy):
@@ -47,7 +55,7 @@ class MCCFRTrainer(BaseCFRTrainer):
         traverser: int,
         reach_traverser: float,
         reach_opponent: float,
-        average_strategy: bool = True,
+        average_weight: float = 1.0,
     ):
         """
         External-sampling MCCFR recursion.
@@ -82,9 +90,17 @@ class MCCFRTrainer(BaseCFRTrainer):
             strategy = node.get_strategy(
                 legal_actions=legal_actions,
                 reach_probability=reach_traverser,
-                accumulate_strategy=average_strategy,
+                accumulate_strategy=False,
             )
-    
+        
+            self.accumulate_average_strategy(
+                node=node,
+                legal_actions=legal_actions,
+                strategy=strategy,
+                reach_probability=reach_traverser,
+                average_weight=average_weight,
+            )
+        
             return self._traverser_node(
                 state=state,
                 env=env,
@@ -94,15 +110,23 @@ class MCCFRTrainer(BaseCFRTrainer):
                 legal_actions=legal_actions,
                 node=node,
                 strategy=strategy,
-                average_strategy=average_strategy,
+                average_weight=average_weight,
             )
     
         strategy = node.get_strategy(
             legal_actions=legal_actions,
             reach_probability=reach_opponent,
-            accumulate_strategy=average_strategy,
+            accumulate_strategy=False,
         )
-    
+        
+        self.accumulate_average_strategy(
+            node=node,
+            legal_actions=legal_actions,
+            strategy=strategy,
+            reach_probability=reach_opponent,
+            average_weight=average_weight,
+        )
+        
         return self._opponent_node(
             state=state,
             env=env,
@@ -112,7 +136,7 @@ class MCCFRTrainer(BaseCFRTrainer):
             legal_actions=legal_actions,
             node=node,
             strategy=strategy,
-            average_strategy=average_strategy,
+            average_weight=average_weight,
         )
 
     def _traverser_node(
@@ -125,7 +149,7 @@ class MCCFRTrainer(BaseCFRTrainer):
         legal_actions,
         node,
         strategy,
-        average_strategy,
+        average_weight,
     ):
         """
         At traverser nodes, explore all legal actions and update regrets.
@@ -144,7 +168,7 @@ class MCCFRTrainer(BaseCFRTrainer):
                 traverser=traverser,
                 reach_traverser=reach_traverser * strategy[idx],
                 reach_opponent=reach_opponent,
-                average_strategy=average_strategy,
+                average_weight=average_weight,
             )
     
             action_values[action] = action_value
@@ -167,7 +191,7 @@ class MCCFRTrainer(BaseCFRTrainer):
         legal_actions,
         node,
         strategy,
-        average_strategy,
+        average_weight,
     ):
         """
         At opponent nodes, sample one action from the current strategy.
@@ -188,7 +212,7 @@ class MCCFRTrainer(BaseCFRTrainer):
             traverser=traverser,
             reach_traverser=reach_traverser,
             reach_opponent=reach_opponent * strategy[sampled_idx],
-            average_strategy=average_strategy,
+            average_weight=average_weight,
         )
 
     def train(
@@ -200,6 +224,7 @@ class MCCFRTrainer(BaseCFRTrainer):
         print_every: int | None = 100,
         update_both_players: bool = True,
         average_starting_iteration: int = 0,
+        
     ):
         if load_checkpoint:
             self.load_checkpoint(path)
@@ -214,7 +239,10 @@ class MCCFRTrainer(BaseCFRTrainer):
             env.reset()
             initial_state = env.state
             
-            average_strategy = iteration >= average_starting_iteration
+            average_weight = self.average_weight(
+                iteration,
+                average_starting_iteration,
+            )
         
             if update_both_players:
                 traversers = [0, 1]
@@ -230,7 +258,7 @@ class MCCFRTrainer(BaseCFRTrainer):
                     traverser=traverser,
                     reach_traverser=1.0,
                     reach_opponent=1.0,
-                    average_strategy= average_strategy
+                    average_weight= average_weight
                 )
         
                 utility_sum += utility
@@ -261,5 +289,40 @@ class MCCFRTrainer(BaseCFRTrainer):
 
         if path is not None:
             self.save_checkpoint(path)
+            
+    def average_weight(self, iteration, average_starting_iteration):
+        start = max(1, average_starting_iteration)
+    
+        if iteration < start:
+            return 0.0
+    
+        if self.average_weighting == "uniform":
+            return 1.0
+    
+        if self.average_weighting == "linear":
+            return float(iteration - start + 1)
+    
+        raise ValueError(
+            f"Unknown average_weighting: {self.average_weighting}"
+        )
+    
+    def accumulate_average_strategy(
+        self,
+        node,
+        legal_actions,
+        strategy,
+        reach_probability,
+        average_weight,
+    ):
+        if average_weight <= 0.0:
+            return
+    
+        for action in legal_actions:
+            idx = ACTION_INDEX[action]
+            node.strategy_sum[idx] += (
+                average_weight
+                * reach_probability
+                * strategy[idx]
+            )
 
    
