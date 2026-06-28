@@ -7,7 +7,6 @@ Created on Sun May 17 14:25:01 2026
 
 from .cards import Cards
 import random
-import copy
 
 class Deck():
     
@@ -57,7 +56,16 @@ class Deck():
         return False
     
     def clone(self):
-        return copy.deepcopy(self)
+        cloned = Deck.__new__(Deck)
+    
+        cloned.deck = self.deck.copy()
+    
+        # Keep the same RNG object instead of deep-copying it.
+        # CFR branch traversal should not need an independent random generator.
+        if hasattr(self, "rng"):
+            cloned.rng = self.rng
+    
+        return cloned
     
     def reseed(self, seed):
         self.rng.seed(seed)

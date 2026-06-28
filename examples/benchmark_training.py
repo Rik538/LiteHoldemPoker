@@ -9,7 +9,7 @@ from pathlib import Path
 
 from lite_holdem_ai.cfr.infoset import (
     CachedEquityBucketProvider,
-    StreetAwarePotBucket7InfosetKeyBuilder,
+    StreetAwarePotBucketNoHistoryInfosetKeyBuilder,
     MemoizedBucketProvider,
 )
 from lite_holdem_ai.cfr.mccfr_trainer import MCCFRTrainer
@@ -36,7 +36,7 @@ def main():
     with EquityCache(cache_path) as equity_cache:
         raw_bucket_provider = CachedEquityBucketProvider(equity_cache)
         bucket_provider = MemoizedBucketProvider(raw_bucket_provider)
-        infoset_builder = StreetAwarePotBucket7InfosetKeyBuilder(bucket_provider)
+        infoset_builder = StreetAwarePotBucketNoHistoryInfosetKeyBuilder(bucket_provider)
 
         trainer = MCCFRTrainer(
             infoset_builder=infoset_builder,
@@ -61,37 +61,6 @@ def main():
         print("Training complete.")
 
 
-    """
-            
-    with EquityCache(cache_path) as equity_cache:
-        raw_bucket_provider = CachedEquityBucketProvider(equity_cache)
-        bucket_provider = MemoizedBucketProvider(raw_bucket_provider)
-        infoset_builder = EquityPotBucketInfosetKeyBuilder(bucket_provider)
-
-        trainer = MCCFRTrainer(
-            infoset_builder=infoset_builder,
-            env_factory=lambda: LiteHoldemEnv(),
-        )
-        
-        start = time.perf_counter()
-
-        trainer.train(
-            iterations=1_000,
-            path=None,
-            save_every=None,
-            print_every=1_000,
-            update_both_players=True,
-        )
-        
-        
-        elapsedMCCFR = time.perf_counter() - start
-        trainer_stats["Memoized MCCFR"] = elapsedMCCFR
-        
-
-        print()
-        print("Training complete.")
-
-    """
     for trainer in trainer_stats.keys():
         
         elapsed = trainer_stats[trainer]

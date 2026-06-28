@@ -9,7 +9,7 @@ from pathlib import Path
 
 from lite_holdem_ai.cfr.infoset import (
     CachedEquityBucketProvider,
-    EquityBucketInfosetKeyBuilder,
+    StreetAwarePotBucketNoHistoryInfosetKeyBuilder,
     MemoizedBucketProvider,
 )
 from lite_holdem_ai.cfr.mccfr_trainer import MCCFRTrainer
@@ -19,7 +19,7 @@ from lite_holdem_ai.game.environment import LiteHoldemEnv
 
 def main():
     cache_path = Path("cache") / "equity_cache.sqlite"
-    checkpoint_path = Path("checkpoints") / "lite_holdem_test.pkl"
+    checkpoint_path = Path("checkpoints") / "rfd_lite_holdem_nohist_1M.pkl"
 
     checkpoint_path.parent.mkdir(exist_ok=True)
 
@@ -32,7 +32,7 @@ def main():
     with EquityCache(cache_path) as equity_cache:
         raw_bucket_provider = CachedEquityBucketProvider(equity_cache)
         bucket_provider = MemoizedBucketProvider(raw_bucket_provider)
-        infoset_builder = EquityBucketInfosetKeyBuilder(bucket_provider)
+        infoset_builder = StreetAwarePotBucketNoHistoryInfosetKeyBuilder(bucket_provider)
 
         trainer = MCCFRTrainer(
             infoset_builder=infoset_builder,
@@ -40,10 +40,10 @@ def main():
         )
 
         trainer.train(
-            iterations=1_000,
+            iterations=1_000_000,
             path=checkpoint_path,
-            save_every=1_000,
-            print_every=100,
+            save_every=50_000,
+            print_every=1_000,
             update_both_players=True,
         )
 
