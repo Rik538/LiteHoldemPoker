@@ -1,6 +1,6 @@
 [project]
 name = "lite-holdem-ai"
-version = "0.9.0"
+version = "0.10.0"
 description = "A Python package for Lite Holdem poker agents, CFR training, and agent evaluation."
 readme = "README.md"
 requires-python = ">=3.10"
