@@ -214,3 +214,115 @@ class EquityCache:
     def clear(self) -> None:
         self.connection.execute("DELETE FROM equity_cache")
         self.connection.commit()
+        
+class InMemoryEquityCache:
+    """
+    Dict-backed equity cache loaded from a SQLite EquityCache.
+
+    Use this for training/evaluation hot paths where repeated SQLite queries
+    are too slow.
+    """
+
+    def __init__(self, rows):
+        self.data = {}
+        self.counts_by_board_size = {}
+
+        for row in rows:
+            (
+                private_key,
+                public_key,
+                board_size,
+                equity,
+                bucket,
+                wins,
+                losses,
+                splits,
+                total,
+            ) = row
+
+            key = (private_key, public_key)
+
+            self.data[key] = (
+                equity,
+                bucket,
+                wins,
+                losses,
+                splits,
+                total,
+            )
+
+            self.counts_by_board_size[board_size] = (
+                self.counts_by_board_size.get(board_size, 0) + 1
+            )
+
+    @classmethod
+    def from_sqlite(cls, path: str | Path) -> "InMemoryEquityCache":
+        sqlite_cache = EquityCache(path)
+
+        try:
+            cursor = sqlite_cache.connection.execute(
+                """
+                SELECT
+                    private_key,
+                    public_key,
+                    board_size,
+                    equity,
+                    bucket,
+                    wins,
+                    losses,
+                    splits,
+                    total
+                FROM equity_cache
+                """
+            )
+
+            return cls(cursor.fetchall())
+
+        finally:
+            sqlite_cache.close()
+
+    def card_key(self, cards) -> str:
+        return ",".join(str(card) for card in sorted(cards))
+
+    def make_key(self, private_cards, public_cards) -> tuple[str, str]:
+        private_key = self.card_key(private_cards)
+        public_key = self.card_key(public_cards)
+        return private_key, public_key
+
+    def contains(self, private_cards, public_cards) -> bool:
+        return self.make_key(private_cards, public_cards) in self.data
+
+    def get(self, private_cards, public_cards) -> dict:
+        key = self.make_key(private_cards, public_cards)
+
+        try:
+            equity, bucket, wins, losses, splits, total = self.data[key]
+        except KeyError:
+            raise KeyError(
+                f"Missing equity cache entry for "
+                f"private={list(private_cards)}, public={list(public_cards)}"
+            )
+
+        return {
+            "equity": equity,
+            "bucket": bucket,
+            "wins": wins,
+            "losses": losses,
+            "splits": splits,
+            "total": total,
+        }
+
+    def count(self, board_size: int | None = None) -> int:
+        if board_size is None:
+            return len(self.data)
+
+        return self.counts_by_board_size.get(board_size, 0)
+
+    def close(self) -> None:
+        pass
+
+    def __enter__(self) -> "InMemoryEquityCache":
+        return self
+
+    def __exit__(self, exc_type, exc_value, traceback) -> None:
+        self.close()

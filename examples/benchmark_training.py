@@ -9,7 +9,7 @@ from pathlib import Path
 
 from lite_holdem_ai.cfr.infoset import (
     CachedEquityBucketProvider,
-    StreetAwarePotBucketNoHistoryInfosetKeyBuilder,
+    StreetAwarePotBucketTextureNoHistoryInfosetKeyBuilder,
     MemoizedBucketProvider,
 )
 from lite_holdem_ai.cfr.mccfr_trainer import MCCFRTrainer
@@ -36,7 +36,7 @@ def main():
     with EquityCache(cache_path) as equity_cache:
         raw_bucket_provider = CachedEquityBucketProvider(equity_cache)
         bucket_provider = MemoizedBucketProvider(raw_bucket_provider)
-        infoset_builder = StreetAwarePotBucketNoHistoryInfosetKeyBuilder(bucket_provider)
+        infoset_builder = StreetAwarePotBucketTextureNoHistoryInfosetKeyBuilder(bucket_provider)
 
         trainer = MCCFRTrainer(
             infoset_builder=infoset_builder,
@@ -54,7 +54,7 @@ def main():
         )
         
         elapsedMCCFR = time.perf_counter() - start
-        trainer_stats["7 Bucket Infoset MCCFR"] = elapsedMCCFR
+        trainer_stats["Board Texture MCCFR"] = elapsedMCCFR
         
 
         print()

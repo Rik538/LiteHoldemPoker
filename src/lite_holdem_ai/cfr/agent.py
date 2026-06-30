@@ -21,12 +21,14 @@ class CFRAgent(Agent):
         self.nodes = nodes
         self.rng = random.Random(seed)
         self.missing_nodes = 0
+        self.decisions = 0
         self.infoset_builder = infoset_builder
 
     def select_action(self, observation, legal_actions):
         if not legal_actions:
             raise ValueError("CFRAgent received no legal actions")
-
+        
+        self.decisions += 1
         info_key = self.infoset_builder.from_observation(observation)
         node = self.nodes.get(info_key)
 

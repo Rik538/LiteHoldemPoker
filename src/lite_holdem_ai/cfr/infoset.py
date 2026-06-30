@@ -83,6 +83,43 @@ class InfosetKeyBuilder(ABC):
     
         return self._bucket_from_thresholds(equity, thresholds)
     
+    def _card_rank(self,card: int):
+        return card // 4
+
+
+    def _card_suit(self,card: int):
+        return card % 4
+    
+    def _board_texture_bucket(self,public_cards):
+        if len(public_cards) < 3:
+            return 0
+    
+        ranks = [self._card_rank(card) for card in public_cards]
+        suits = [self._card_suit(card) for card in public_cards]
+    
+        rank_counts = {}
+        for rank in ranks:
+            rank_counts[rank] = rank_counts.get(rank, 0) + 1
+    
+        suit_counts = {}
+        for suit in suits:
+            suit_counts[suit] = suit_counts.get(suit, 0) + 1
+    
+        paired_board = any(count >= 2 for count in rank_counts.values())
+    
+        # In 20-card hold'em, 3+ public cards of one suit is already meaningful.
+        flush_pressure = any(count >= 3 for count in suit_counts.values())
+    
+        # Since ranks are only 0-4, straight pressure is mostly about how many
+        # distinct ranks are visible.
+        straight_pressure = len(set(ranks)) >= 3
+    
+        return (
+            int(paired_board)
+            + 2 * int(flush_pressure)
+            + 4 * int(straight_pressure)
+        )
+    
 @dataclass(frozen=True)
 class InfosetContext:
     private_cards: tuple[int, ...]
@@ -345,4 +382,39 @@ class StreetAwarePotBucket7InfosetKeyBuilder(InfosetKeyBuilder):
             ctx.facing_bet,
             ctx.raises_this_round,
         ) 
+    
+class StreetAwarePotBucketTextureNoHistoryInfosetKeyBuilder(InfosetKeyBuilder):
+    name = "street_aware_pot_bucket_no_history_v1"
+
+    def __init__(self, bucket_provider):
+        self.bucket_provider = bucket_provider
+
+   
+
+    def from_observation(self, observation):
+        ctx = build_infoset_context(observation)
+
+        
+        equity = self.bucket_provider.get_equity(
+            ctx.private_cards,
+            ctx.public_cards,
+        )
+        
+        equity_bucket = self._equity_bucket_for_street(equity,ctx.street,DEFAULT_STREET_THRESHOLDS)
+        
+        
+        pot_bucket = self._pot_bucket(ctx.pot)
+
+        return (
+            ctx.player,
+            ctx.street,
+            equity_bucket,
+            pot_bucket,
+            self._board_texture_bucket(ctx.public_cards),
+            ctx.position,
+            ctx.facing_bet,
+            ctx.raises_this_round,
+        )
+    
+
     
