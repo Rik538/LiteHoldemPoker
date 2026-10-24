@@ -9,7 +9,7 @@ equity during gameplay.
 from pathlib import Path
 
 from lite_holdem_ai.agents.base import Agent
-from lite_holdem_ai.equity.cache import EquityCache
+from lite_holdem_ai.equity.cache import InMemoryEquityCache
 from lite_holdem_ai.game.actions import Action
 
 
@@ -22,7 +22,7 @@ class CachedEquityAgent(Agent):
         cache_path: str | Path = "cache/equity_cache.sqlite",
     ):
         self.name = name if name is not None else "Cached Equity"
-        self.cache = EquityCache(cache_path)
+        self.cache = InMemoryEquityCache.from_sqlite(cache_path)
 
         self.value_bet_threshold = 0.62
         self.raise_threshold = 0.72

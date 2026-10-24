@@ -7,7 +7,7 @@ Created on Wed Jun  3 19:57:12 2026
 
 import pytest
 
-from lite_holdem_ai.equity.cache import EquityCache
+from lite_holdem_ai.equity.cache import EquityCache,InMemoryEquityCache
 
 
 def sample_result(equity=0.75):
@@ -156,3 +156,44 @@ def test_equity_cache_context_manager(tmp_path):
     with EquityCache(path) as cache:
         cache.set([16, 17], [], sample_result(0.70), bucket=3)
         assert cache.count() == 1
+        
+def test_in_memory_equity_cache_matches_sqlite_cache(tmp_path):
+    path = tmp_path / "equity.sqlite"
+
+    sqlite_cache = EquityCache(path)
+
+    result = {
+        "equity": 0.75,
+        "wins": 7,
+        "losses": 2,
+        "splits": 1,
+        "total": 10,
+    }
+
+    sqlite_cache.set(
+        private_cards=[2, 1],
+        public_cards=[5, 4, 3],
+        result=result,
+        bucket=3,
+    )
+    sqlite_cache.close()
+
+    memory_cache = InMemoryEquityCache.from_sqlite(path)
+
+    loaded = memory_cache.get(
+        private_cards=[1, 2],
+        public_cards=[3, 4, 5],
+    )
+
+    assert loaded == {
+        "equity": 0.75,
+        "bucket": 3,
+        "wins": 7,
+        "losses": 2,
+        "splits": 1,
+        "total": 10,
+    }
+
+    assert memory_cache.contains([2, 1], [5, 4, 3])
+    assert memory_cache.count() == 1
+    assert memory_cache.count(board_size=3) == 1

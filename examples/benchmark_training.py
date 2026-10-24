@@ -13,7 +13,7 @@ from lite_holdem_ai.cfr.infoset import (
     MemoizedBucketProvider,
 )
 from lite_holdem_ai.cfr.mccfr_trainer import MCCFRTrainer
-from lite_holdem_ai.equity.cache import EquityCache
+from lite_holdem_ai.equity.cache import InMemoryEquityCache
 from lite_holdem_ai.game.environment import LiteHoldemEnv
 
 import time
@@ -33,7 +33,7 @@ def main():
             "Run py examples\\build_equity_cache.py first."
         )
 
-    with EquityCache(cache_path) as equity_cache:
+    with InMemoryEquityCache.from_sqlite(cache_path) as equity_cache:
         raw_bucket_provider = CachedEquityBucketProvider(equity_cache)
         bucket_provider = MemoizedBucketProvider(raw_bucket_provider)
         infoset_builder = StreetAwarePotBucketTextureNoHistoryInfosetKeyBuilder(bucket_provider)
