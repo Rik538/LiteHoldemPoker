@@ -1,0 +1,12 @@
+[package]
+name = "holdem_bindings"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+name = "holdem_bindings"
+crate-type = ["cdylib"]
+
+[dependencies]
+holdem_core = { path = "../holdem_core" }
+pyo3 = { version = "0.27", features = ["extension-module"] }

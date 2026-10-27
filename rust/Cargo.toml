@@ -1,0 +1,6 @@
+[workspace]
+members = [
+    "holdem_core",
+    "holdem_bindings"
+]
+resolver = "2"
