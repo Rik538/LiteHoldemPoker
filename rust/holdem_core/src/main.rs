@@ -1,32 +1,23 @@
-use rand::seq::SliceRandom;
+use rand::rngs::StdRng;
+use rand::SeedableRng;
 
 fn main() {
 
 
-    use holdem_core::deck::Deck;
+    use holdem_core::state::GameState;
 
 
+    let mut rng = StdRng::seed_from_u64(42); 
 
+    let mut state = GameState::new();
 
+    //println!("{:?}",state);
 
-    let mut test_deck = Deck::new();
-
-    let card = test_deck.draw();
-
-    println!("Card: {:?}", card);
-
-    println!("Next Card Idx: {:?}", test_deck);
-
-    //rand::seq::SliceRandom;
-
-    let mut rng = rand::rng();
-
-    let mut vec: Vec<usize> = (0..10).collect();
-    println!("{:?}", vec);
-    vec.shuffle(&mut rng);
-    println!("{:?}", vec);
+    state.start_hand(&mut rng);
 
     
+
+    println!("{:?}",state);   
 
 
 

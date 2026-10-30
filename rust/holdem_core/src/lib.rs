@@ -5,6 +5,9 @@ pub fn hello() -> &'static str {
 
 pub mod cards;
 pub mod deck;
+pub mod actions;
+pub mod state;
+pub mod engine;
 
 #[cfg(test)]
 mod tests {
