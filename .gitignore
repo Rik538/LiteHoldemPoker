@@ -49,3 +49,7 @@ cache/
 # Optional trained/generated artifacts
 
 checkpoints/
+benchmarks/
+
+# Rust files
+target/

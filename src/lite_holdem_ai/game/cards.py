@@ -21,23 +21,20 @@ class Suit(IntEnum):
     DIAMONDS = 1
     HEARTS = 2
     SPADES = 3
-    
-    
-    
-class Cards():
 
-    def make_card(self,rank: Rank, suit: Suit) -> int:
+
+class Cards:
+
+    def make_card(self, rank: Rank, suit: Suit) -> int:
         return int(rank) * 4 + int(suit)
-    
-    def card_rank(self,card: int) -> Rank:
+
+    def card_rank(self, card: int) -> Rank:
         return Rank(card // 4)
 
-
-    def card_suit(self,card: int) -> Suit:
+    def card_suit(self, card: int) -> Suit:
         return Suit(card % 4)
-    
-    
-    def card_to_str(self,card: int) -> str:
+
+    def card_to_str(self, card: int) -> str:
         rank_symbols = {
             Rank.TEN: "T",
             Rank.JACK: "J",
@@ -45,20 +42,22 @@ class Cards():
             Rank.KING: "K",
             Rank.ACE: "A",
         }
-    
+
         suit_symbols = {
             Suit.CLUBS: "c",
             Suit.DIAMONDS: "d",
             Suit.HEARTS: "h",
             Suit.SPADES: "s",
         }
-    
+
         return rank_symbols[self.card_rank(card)] + suit_symbols[self.card_suit(card)]
-    
-    
-    
 
 
-
-
-    
+if __name__ == "__main__":
+    cards = Cards()
+    for rank in Rank:
+        for suit in Suit:
+            card = cards.make_card(rank, suit)
+            print(
+                f"Card: {card}, Rank: {cards.card_rank(card).name}, Suit: {cards.card_suit(card).name}, String: {cards.card_to_str(card)}"
+            )

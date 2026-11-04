@@ -26,7 +26,7 @@ pub enum Suit {
 }
 
 impl Suit {
-    const ALL: [Suit; 4] = [
+    pub const ALL: [Suit; 4] = [
         Suit::Heart,
         Suit::Diamond,
         Suit::Spade,
@@ -35,17 +35,18 @@ impl Suit {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
+#[repr(u8)]
 pub enum Rank {
-    Ten,
-    Jack,
-    Queen,
-    King,
-    Ace,
+    Ten = 10,
+    Jack = 11,
+    Queen = 12,
+    King = 13,
+    Ace = 14,
 }
 
 #[allow(dead_code)]
 impl Rank {
-    const ALL: [Rank; 5] = [
+    pub const ALL: [Rank; 5] = [
         Rank::Ten,
         Rank::Jack,
         Rank::Queen,
@@ -58,10 +59,8 @@ impl Rank {
 #[allow(dead_code)]
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Card {
-    #[allow(dead_code)]
-    suit: Suit,
-    #[allow(dead_code)]
-    rank: Rank,
+    pub(crate) suit: Suit,
+    pub(crate) rank: Rank,
 }
 
 #[cfg(test)]

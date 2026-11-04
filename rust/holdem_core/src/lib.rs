@@ -8,6 +8,9 @@ pub mod deck;
 pub mod actions;
 pub mod state;
 pub mod engine;
+pub mod errors;
+pub mod evaluator;
+pub mod python_evaluator;
 
 #[cfg(test)]
 mod tests {
