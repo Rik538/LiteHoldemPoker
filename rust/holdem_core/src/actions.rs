@@ -1,11 +1,11 @@
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub enum Action {
-    Call,
-    Check,
-    Bet,
-    Raise,
-    Fold,
+    Call = 0,
+    Check = 1,
+    Bet = 2,
+    Raise = 3,
+    Fold = 4,
 }
 
 pub fn describe_action(action: &Action) -> String {

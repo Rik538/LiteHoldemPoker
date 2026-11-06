@@ -2,7 +2,7 @@ use crate::deck::Deck;
 use crate::cards::Card;
 use crate::actions::Action;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Copy, Clone, PartialEq, Eq,Hash)]
 pub enum Street {
     Preflop,
     Flop,

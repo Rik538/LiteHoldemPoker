@@ -3,6 +3,7 @@ use crate::actions::Action;
 use rand::Rng;
 use crate::errors::GameError;
 use crate::evaluator::{evaluate_hand,HandValue};
+use crate::observed_state::ObservedState;
 
 //small helpers
 impl GameState {
@@ -330,6 +331,31 @@ impl GameState {
 
 
 
+impl GameState {
+    pub fn get_observation(&self, player: usize) -> Option<ObservedState<'_>> {
+        let private_cards = *self.player_cards.get(player)?.as_ref()?;
+
+        Some(ObservedState {
+            current_player: self.current_player,
+            player,
+            private_cards,
+            public_cards: &self.public_cards,
+            street: self.street,
+            pot: self.pot,
+            button_player: self.button_player,
+            amount_to_call: self.amount_to_call(player),
+            raises_this_round: self.raises_this_round,
+            legal_actions: if self.current_player == player {
+                self.legal_actions()
+            } else {
+                [None, None, None]
+            },
+        })
+    }
+}
+
+
+
 
 
 
@@ -385,6 +411,8 @@ mod tests {
 
         println!("{:?}",state);
     }
+
+
 
 
     #[test]

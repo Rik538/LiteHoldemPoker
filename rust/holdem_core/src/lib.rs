@@ -13,7 +13,8 @@ pub mod evaluator;
 pub mod equity_builder;
 pub mod equity_cache;
 pub mod equity_cache_access;
-
+pub mod cfr;
+pub mod observed_state;
 
 pub mod python_evaluator;
 

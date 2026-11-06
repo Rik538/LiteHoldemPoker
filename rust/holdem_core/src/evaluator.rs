@@ -34,7 +34,7 @@ pub fn evaluate_hand(private_cards: [Card;2], public_cards: [Card;5]) -> HandVal
         }
     });
 
-    let context = build_context(cards);
+    let context = build_context(&cards);
 
     // Straight Flush
     if context.suits.iter().any(|&count| count == 5) {
@@ -101,7 +101,7 @@ pub fn evaluate_hand(private_cards: [Card;2], public_cards: [Card;5]) -> HandVal
     }
 }
 
-fn build_context(cards: [Card; 7]) -> HandContext {
+pub fn build_context(cards: &[Card]) -> HandContext {
     let mut rank_counts = [0u8; 5];
     let mut suit_counts = [0u8; 4];
 
