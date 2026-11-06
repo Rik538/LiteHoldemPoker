@@ -6,7 +6,7 @@ use crate::cards::create_deck;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Hash)]
 pub struct Deck {
-    cards: [Card; 20],
+    pub(crate) cards: [Card; 20],
     next_card: usize,
 }
 

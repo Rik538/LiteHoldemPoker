@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 csv = "1"
 rand = "0.10.3"
+rusqlite = { version = "0.37", features = ["bundled"] }
 
 [dev-dependencies]
 csv = "1"

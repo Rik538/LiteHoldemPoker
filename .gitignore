@@ -50,6 +50,7 @@ cache/
 
 checkpoints/
 benchmarks/
+cache/
 
 # Rust files
 target/

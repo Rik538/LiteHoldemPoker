@@ -10,7 +10,13 @@ pub mod state;
 pub mod engine;
 pub mod errors;
 pub mod evaluator;
+pub mod equity_builder;
+pub mod equity_cache;
+pub mod equity_cache_access;
+
+
 pub mod python_evaluator;
+
 
 #[cfg(test)]
 mod tests {
