@@ -1,10 +1,12 @@
 # Lite Hold'em AI
 
-`lite-holdem-ai` is a Python package for experimenting with agents in a simplified 20-card heads-up Texas Hold'em-style poker game.
+`lite-holdem-ai` began as a Python package for experimenting with agents in a simplified 20-card, heads-up Texas Hold'em-style poker game. It now includes an independently implemented **Rust game engine, equity system, MCCFR trainer, CFR agent, and tournament framework**, along with a bridge that lets Rust and Python agents play each other in the same game.
 
-The project includes a playable game engine, environment wrapper, baseline agents, equity-based agents, cached equity agents, bucketed CFR, external-sampling MCCFR, repeated tournament evaluation, infoset abstraction experiments, MCCFR training-method experiments, CSV export, and diagnostic summaries for comparing poker agents.
+The Python package includes a playable environment, baseline and equity agents, cached equity, bucketed CFR, external-sampling MCCFR, pluggable information-set abstractions, training experiments, repeated tournaments, CSV export, and diagnostics. The Rust crate focuses on performance, correctness testing, and cross-language interoperability.
 
-This package is intended as a bridge between small imperfect-information games like Leduc poker and larger poker AI projects.
+**Project milestone:** a Rust-trained CFR agent and a Python-trained CFR agent successfully completed a 100,000-hand head-to-head tournament, refereed entirely by the Rust engine. The project is considered feature-complete for its original goal; further research is optional.
+
+This is an experimental, simplified poker AI project, not a full Texas Hold'em solver.
 
 ---
 
@@ -14,7 +16,8 @@ This package is intended as a bridge between small imperfect-information games l
 - Heads-up two-player poker
 - Private cards and public board cards
 - Multiple betting streets
-- Fixed action set: `FOLD`, `CHECK_CALL`, `BET_RAISE`
+- Python fixed action set: `FOLD`, `CHECK_CALL`, `BET_RAISE`
+- Rust action variants: `Fold`, `Check`, `Call`, `Bet`, `Raise` (equivalent choices, distinguished by betting context)
 - Hand evaluator
 - Game state and environment wrapper
 - Baseline agents: `RandomAgent`, `PassiveAgent`, `AggressiveAgent`, `HeuristicAgent`
@@ -32,6 +35,12 @@ This package is intended as a bridge between small imperfect-information games l
 - Payoff matrix generation and CSV export
 - Agent style diagnostics
 - Pytest test suite
+- Native Rust engine, exact equity calculations, and in-memory equity lookup
+- Rust external-sampling MCCFR trainer with checkpoint save/load
+- Rust CFR and cached-equity playing agents
+- Rust single-hand, multi-hand, and seat-swapped tournament runners
+- Persistent Python subprocess bridge (JSON Lines over stdin/stdout)
+- Rust CFR vs Python CFR cross-language game and tournament examples
 
 ---
 
@@ -57,32 +66,70 @@ LiteHoldemPoker/
 ├── src/
 │   └── lite_holdem_ai/
 │       ├── agents/
+│       ├── bridge/
+│       │   └── agent_bridge.py
 │       ├── cfr/
 │       ├── equity/
 │       ├── evaluation/
 │       └── game/
+├── rust/
+│   └── holdem_core/
+│       ├── Cargo.toml
+│       ├── src/
+│       │   ├── state.rs
+│       │   ├── observed_state.rs
+│       │   ├── agents/
+│       │   ├── bridge/
+│       │   │   ├── observation.rs
+│       │   │   └── python_agent.rs
+│       │   ├── cfr/
+│       │   ├── runners/
+│       │   └── ...
+│       └── examples/
+│           ├── benchmark_rust_vs_python.rs
+│           └── benchmark_rust_vs_python_tournament.rs
 ├── tests/
 └── results/
 ```
 
-Generated folders such as `cache/`, `checkpoints/`, and `results/` are intentionally ignored by Git.
+Generated folders such as `cache/`, `checkpoints/`, and `results/` are intentionally ignored by Git. Checkpoint files and equity databases must be generated or supplied locally; they are not included in a normal source checkout.
 
 ---
 
 ## Installation
 
-From the project root, install the package in editable mode:
+Requirements: Python with `pip`, plus a Rust toolchain (`cargo` and `rustc`) for the Rust crate. The commands below use a Linux/Fedora-style shell.
 
-```powershell
-py -m pip install -e ".[dev]"
+From the repository root, install the Python package in editable mode:
+
+```bash
+python -m pip install -e ".[dev]"
 ```
+
+Build the Rust implementation:
+
+```bash
+cd rust/holdem_core
+cargo build --release
+```
+
+On Windows PowerShell, `py -m pip install -e ".[dev]"` is the equivalent Python installation command. Use the interpreter/environment that contains your Python project dependencies when launching the bridge.
 
 ---
 
 ## Running tests
 
-```powershell
-py -m pytest
+From the repository root, run the Python tests:
+
+```bash
+python -m pytest
+```
+
+Then run the Rust tests from the crate directory:
+
+```bash
+cd rust/holdem_core
+cargo test
 ```
 
 The normal test suite is designed to be fast. It does not rebuild the full SQLite equity cache or run the slow exhaustive cache completeness check unless explicitly enabled.
@@ -107,18 +154,16 @@ Total:  2,364,550
 
 The full cache completeness test is intentionally slow and should be run manually:
 
-```powershell
-$env:RUN_FULL_CACHE_TESTS="1"
-py -m pytest tests\test_cache_completeness.py
-Remove-Item Env:\RUN_FULL_CACHE_TESTS
+```bash
+RUN_FULL_CACHE_TESTS=1 python -m pytest tests/test_cache_completeness.py
 ```
 
 ---
 
 ## Building the equity cache
 
-```powershell
-py examples\build_equity_cache.py
+```bash
+python examples/build_equity_cache.py
 ```
 
 The cache is written to:
@@ -154,23 +199,23 @@ result.print_summary()
 
 Baseline agents:
 
-```powershell
-py examples\baseline_tournament.py
+```bash
+python examples/baseline_tournament.py
 ```
 
 Equity agents:
 
-```powershell
-py examples\equity_tournament.py
-py examples\bucket_equity_tournament.py
-py examples\cached_equity_tournament.py
+```bash
+python examples/equity_tournament.py
+python examples/bucket_equity_tournament.py
+python examples/cached_equity_tournament.py
 ```
 
 CFR/MCCFR checkpoints:
 
-```powershell
-py examples\cfr_tournament.py
-py examples\mccfr_scaling_tournament.py
+```bash
+python examples/cfr_tournament.py
+python examples/mccfr_scaling_tournament.py
 ```
 
 Each table entry is the average payoff for the row agent against the column agent.
@@ -221,8 +266,8 @@ street betting history
 
 To train a CFR checkpoint:
 
-```powershell
-py examples\train_cfr.py
+```bash
+python examples/train_cfr.py
 ```
 
 Checkpoints are written to `checkpoints/` and ignored by Git by default.
@@ -240,20 +285,20 @@ External-sampling MCCFR is faster than the full CFR trainer because:
 
 Normal MCCFR training:
 
-```powershell
-py examples\train_mccfr.py
+```bash
+python examples/train_mccfr.py
 ```
 
 Delayed-averaging MCCFR training:
 
-```powershell
-py examples\train_delayed_mccfr.py
+```bash
+python examples/train_delayed_mccfr.py
 ```
 
 Multi-seed MCCFR training:
 
-```powershell
-py examples\train_multiseed_mccfr.py
+```bash
+python examples/train_multiseed_mccfr.py
 ```
 
 The MCCFR trainer uses the same infoset abstraction as the CFR playing agent, so trained checkpoints can be played by `CFRAgent`.
@@ -359,8 +404,9 @@ The main abstraction features tested so far include:
 | Street history | Encodes exact current-street action sequence. |
 | No-history variant | Removes exact street history when redundant. |
 | 7-bucket variant | Tests finer street-aware equity resolution. |
+| Board texture bucket | Compactly captures paired boards, flush pressure, and straight pressure for the newer cross-language abstraction. |
 
-The strongest confirmed abstraction family so far is:
+In the earlier Python-only abstraction experiments, the preferred compact family was:
 
 ```python
 (
@@ -374,7 +420,22 @@ The strongest confirmed abstraction family so far is:
 )
 ```
 
-The no-history street-aware pot-bucket variant is currently the preferred abstraction for training-method experiments because it is compact, stable, and competitive.
+The later Python/Rust cross-language implementation uses an **eight-field no-history abstraction**, also including board texture:
+
+```python
+(
+    player,
+    street,
+    street_aware_equity_bucket,
+    pot_bucket,
+    texture_bucket,
+    position,
+    facing_bet,
+    raises_this_round,
+)
+```
+
+The texture bucket combines flags for a paired board, at least three cards of one suit, and at least three distinct ranks (a coarse straight-pressure signal in the five-rank deck). Training and playing must use the **same** key structure, bucket thresholds, action semantics, and card encoding. Earlier Python experiment results below describe their original configurations and should not be interpreted as direct comparisons with the later eight-field model.
 
 ---
 
@@ -388,7 +449,7 @@ Current experimental findings:
 - Increasing from 5 to 7 street-aware equity buckets was viable, but did not clearly outperform the simpler 5-bucket street-aware version.
 - The strongest agents currently come from the street-aware pot-bucket and no-history street-aware pot-bucket MCCFR families.
 
-These findings are based on repeated tournament evaluation rather than single-run results.
+These earlier Python-only findings are based on repeated tournament evaluation rather than single-run results. They are historical experimental observations, not a claim that the same ranking holds for the later eight-field Rust/Python setup.
 
 ---
 
@@ -509,9 +570,120 @@ result.to_csv("results/mccfr_tournament.csv")
 
 ---
 
+## Rust implementation
+
+The Rust crate (`rust/holdem_core`) is an independent implementation of the same simplified game. Its primary objective was to reproduce the game and CFR workflow with compact data structures, fast evaluation, and a reliable route to playing against the original Python agents.
+
+### Engine and agents
+
+- 20-card deck with ranks ten through ace and four suits, shuffled using a seeded RNG.
+- Heads-up betting, legal-action validation, street transitions, and terminal payoffs.
+- Player-limited `ObservedState` observations, excluding the opponent's private cards.
+- Exact equity evaluation with SQLite persistence and a separate in-memory lookup cache.
+- External-sampling MCCFR with regret matching, averaged strategies, and checkpoint save/load.
+- Native `CFRAgent` and `CachedBucketEquityAgent` implementations.
+- Shared `MatchAgent` trait for native and Python-backed agents.
+- Single-hand, multi-hand, and tournament runners, with reversed seats and button rotation.
+
+Rust uses five distinct action variants (`Fold`, `Check`, `Call`, `Bet`, and `Raise`) where the Python engine uses three (`FOLD`, `CHECK_CALL`, and `BET_RAISE`). The bridge converts between them according to whether the player is facing a bet.
+
+### Equity cache
+
+The Rust equity database covers all **2,364,550** private-hand/board combinations listed earlier. The implementation uses card bitmasks as lookup keys; the in-memory cache avoids repeated SQLite queries during play and training.
+
+These are **measured development benchmarks**, not guaranteed results on other systems:
+
+| Operation | Python | Rust | Approximate improvement |
+|---|---:|---:|---:|
+| Seven-card hand evaluation | 105,000 hands/s | 1,420,000 hands/s | 13.5× |
+| Exhaustive preflop equity calculation | 12.43 s | 0.337 s | 37× |
+| Build full equity cache | 11.34 hours | 82.31 s | 496× |
+
+Separately, **Rust cache lookups** measured approximately **104,339/s through SQLite** versus **4,247,000/s from the in-memory cache** (about **40.7× faster**). This is a comparison of two Rust cache access modes, not Python versus Rust. The cache file is generated data and is not distributed with the source.
+
+### MCCFR training
+
+The Rust trainer traverses all legal actions for the updating player and samples opponent actions, using the shared eight-field abstraction described above. Training checkpoints persist learned nodes and the number of completed iterations.
+
+In a comparable, corrected-button benchmark using the same abstraction family:
+
+| Training run | Throughput | Notes |
+|---|---:|---|
+| Python MCCFR, 100k iterations | ~275 iterations/s | Corrected seat/button rotation |
+| Rust MCCFR, 1M iterations | ~16,117 iterations/s | 62.04 s, 1,780 infosets |
+
+Rust delivered approximately **58× higher iteration throughput** in those recorded runs. The runs used different iteration counts and should be treated as a throughput comparison rather than proof of strategy parity. Rust `rs_1M.bin` and `rs_10M.bin` are example trained checkpoint names from development, not files committed to the repository.
+
+---
+
+## Rust vs Python agent interoperability
+
+The project's final engineering milestone was enabling an independently trained native Rust CFR agent to play the original Python CFR agent **inside the same Rust game**.
+
+```text
+Rust GameState / tournament runner
+        |
+        +--> Rust CFRAgent (native)
+        |
+        +--> PythonAgentBridge (persistent subprocess)
+                   |
+                   | JSON Lines over stdin/stdout
+                   v
+             Python agent_bridge.py
+                   |
+                   v
+             Python CFRAgent
+                   |
+                   v
+             Action returned to Rust GameState
+```
+
+The Rust bridge serializes `ObservedState` into one JSON object per line. The Python process starts once, loads its CFR checkpoint and equity-cache-backed infoset builder once, converts the observation to Python card IDs and action types, then returns an action such as `{"action":"CALL"}`. Rust validates legality before applying it. Python's standard output is reserved for protocol messages; diagnostics should go to standard error.
+
+**Card encoding matters:** Python's integer card IDs use `rank * 4 + suit`, with suits `CLUBS=0`, `DIAMONDS=1`, `HEARTS=2`, `SPADES=3`. The JSON bridge converts two-character card strings such as `AH` and `KD` using that ordering. A mismatched mapping can corrupt equity and information-set lookups.
+
+### Running a cross-language match
+
+First install the Python package and build the Rust crate as shown above. Ensure that the Python CFR checkpoint and its Python equity cache are configured in `src/lite_holdem_ai/bridge/agent_bridge.py`, and that the Rust checkpoint and Rust equity-cache database exist.
+
+**Local configuration:** the development Rust examples currently use fixed `PROJECT_ROOT`, `RUST_CHECKPOINT`, and `RUST_EQUITY_CACHE` constants. Adjust those paths in the example files for your checkout before running. The `python` executable used by `PythonAgentBridge` must resolve to the environment containing `lite_holdem_ai` and its dependencies.
+
+From `rust/holdem_core`:
+
+```bash
+# One complete hand: Rust CFR vs Python CFR
+cargo run --release --example benchmark_rust_vs_python
+
+# Seat-swapped tournament: Rust CFR vs Python CFR
+cargo run --release --example benchmark_rust_vs_python_tournament
+```
+
+For the tournament example, `HANDS_PER_SEATING = 5_000` produces 10,000 total hands; `HANDS_PER_SEATING = 50_000` produces 100,000. The runner swaps seats and records payoff averages, win/loss/draw counts, and an approximate 95% confidence interval.
+
+### Final recorded cross-language tournament
+
+The recorded **100,000-hand** Rust CFR vs Python CFR tournament (50,000 hands per seating, button rotated) produced:
+
+| Metric | Result |
+|---|---:|
+| Rust CFR wins | 54,947 |
+| Python CFR wins | 32,104 |
+| Draws | 12,949 |
+| Rust total payoff | +91,564 chips |
+| Rust average payoff | +0.915640 chips/hand |
+| Approximate 95% CI | +0.860179 to +0.971101 chips/hand |
+| Rust as seat 0 | +0.923180 chips/hand |
+| Rust as seat 1 | +0.908100 chips/hand |
+| Elapsed | 15.30 s |
+| Throughput | 6,534.95 hands/s |
+
+**Interpretation:** this demonstrates successful high-throughput cross-language gameplay, **not** that Rust inherently learns better strategies than Python. An earlier Python training setup repeatedly created a fresh environment and may have trained only one button configuration. In that case, a Python checkpoint would have poor coverage of the opposite position and could fall back to an untrained action distribution. Different checkpoint training regimes and possible infoset coverage differences prevent a controlled playing-strength conclusion. No exploitability or exact strategy-parity guarantee is claimed.
+
+---
+
 ## Current status
 
-Implemented:
+Implemented in Python and/or Rust:
 
 - 20-card Lite Hold'em game engine
 - hand evaluator
@@ -535,8 +707,13 @@ Implemented:
 - CSV export
 - test suite
 - example scripts
+- independently developed Rust game engine, CFR agent, and MCCFR trainer
+- Rust binary checkpoints and high-performance in-memory equity cache
+- Rust tournament runner with seat swaps and statistics
+- Rust-to-Python JSON-lines agent bridge
+- completed Rust CFR vs Python CFR single-hand and 100,000-hand matches
 
-Current research findings:
+Earlier Python research findings:
 
 - Street-aware equity bucketing was the largest abstraction improvement.
 - Pot bucket added useful betting-context information.
@@ -548,19 +725,11 @@ Current research findings:
 
 ---
 
-## Next development direction
+## Project completion and possible future work
 
-The current training-method branch has tested delayed averaging, multi-seed selection, and seed-averaged checkpoints.
+**The original project goal is complete:** a Rust-trained poker agent and a Python-trained poker agent can play one another, with Rust controlling the game and evaluating the outcome. The Python research framework and Rust performance rewrite remain useful as separate experimental implementations.
 
-Potential next experiments:
-
-1. Checkpoint selection across training stages.
-2. Approximate best-response / exploitability evaluation.
-3. Action-frequency diagnostics by street and equity bucket.
-4. Focused evaluation against stronger selected checkpoints.
-5. Porting the framework toward short-deck or full-deck limit Hold'em.
-
-The next likely experiment is checkpoint selection across training stages, because the final checkpoint is not guaranteed to be the strongest policy.
+There is no planned next milestone. If the project is revisited, worthwhile follow-ups would include checking Python checkpoint infoset coverage, retraining with consistently rotating button positions, comparing strategies using paired deals and independent seeds, and exploring approximate exploitability. Those are **optional research improvements**, not prerequisites for considering the project finished.
 
 ---
 
@@ -568,4 +737,4 @@ The next likely experiment is checkpoint selection across training stages, becau
 
 This is not full no-limit Texas Hold'em. It is a simplified 20-card heads-up fixed-action poker environment designed for experimentation and agent evaluation.
 
-The project is intended as a stepping stone toward larger poker AI systems.
+Benchmark figures are observations from development runs. Runtime, throughput, and strategy strength depend on the machine, checkpoint, agent configuration, game seed, and training setup. The project is intended as a learning platform and stepping stone toward larger imperfect-information and systems-programming projects.

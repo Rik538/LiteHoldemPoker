@@ -2,7 +2,9 @@ use crate::deck::Deck;
 use crate::cards::Card;
 use crate::actions::Action;
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq,Hash)]
+use bincode::{Encode, Decode};
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq,Hash, Encode, Decode)]
 pub enum Street {
     Preflop,
     Flop,
@@ -30,14 +32,14 @@ pub struct GameState {
 
     pub(crate) round_bets: [i64;2],
 
-    pub(crate) terminal: bool,
+    pub terminal: bool,
     pub(crate) folded_player: Option<usize>,
 
     pub(crate) action_history: Vec<ActionRecord>,
     pub(crate) raises_this_round: usize,
     pub(crate) actions_this_round: Vec<Action>,
 
-    pub(crate) payoffs: [f64;2],
+    pub payoffs: [f64;2],
 
     pub(crate) button_player: usize,
     pub(crate) small_blind: i64,
@@ -45,7 +47,7 @@ pub struct GameState {
 
     pub(crate) hand_number: usize,
 
-    pub(crate) current_player: usize,
+    pub current_player: usize,
     pub(crate) street: Street,
 }
 

@@ -277,7 +277,6 @@ impl GameState {
 }
 
 
-//To implement
 impl GameState {
     pub fn resolve_showdown(&mut self) -> Result<(), GameError> {
         if self.public_cards.len() != 5 {
@@ -332,7 +331,7 @@ impl GameState {
 
 
 impl GameState {
-    pub fn get_observation(&self, player: usize) -> Option<ObservedState<'_>> {
+    pub fn get_observation(&self, &player: &usize) -> Option<ObservedState<'_>> {
         let private_cards = *self.player_cards.get(player)?.as_ref()?;
 
         Some(ObservedState {

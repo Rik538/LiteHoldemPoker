@@ -4,7 +4,9 @@ use crate::cfr::abstraction::{street_aware_equity_bucket,pot_bucket,texture_buck
 use crate::observed_state::ObservedState;
 use crate::equity_cache_access::MemoryCache;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+use bincode::{Encode, Decode};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Encode, Decode)]
 pub struct InfoSet {
     pub player: u8,
     pub street: Street,
@@ -152,7 +154,7 @@ mod tests {
         let state = setup_game();
         let cache = test_cache();
 
-        let observation = state.get_observation(0).unwrap();
+        let observation = state.get_observation(&0).unwrap();
 
         let infoset_1 =
             InfoSet::from_observation(&observation, cache).unwrap();
@@ -168,7 +170,7 @@ mod tests {
         let state = setup_game();
         let cache = test_cache();
 
-        let observation = state.get_observation(0).unwrap();
+        let observation = state.get_observation(&0).unwrap();
 
         let infoset =
             InfoSet::from_observation(&observation, cache).unwrap();
@@ -189,8 +191,8 @@ mod tests {
         let state = setup_game();
         let cache = test_cache();
 
-        let obs_0 = state.get_observation(0).unwrap();
-        let obs_1 = state.get_observation(1).unwrap();
+        let obs_0 = state.get_observation(&0).unwrap();
+        let obs_1 = state.get_observation(&1).unwrap();
 
         let infoset_0 =
             InfoSet::from_observation(&obs_0, cache).unwrap();
@@ -218,14 +220,14 @@ mod tests {
         state.button_player = 0;
 
         let button_infoset = {
-            let obs = state.get_observation(0).unwrap();
+            let obs = state.get_observation(&0).unwrap();
             InfoSet::from_observation(&obs, cache).unwrap()
         };
 
         state.button_player = 1;
 
         let non_button_infoset = {
-            let obs = state.get_observation(0).unwrap();
+            let obs = state.get_observation(&0).unwrap();
             InfoSet::from_observation(&obs, cache).unwrap()
         };
 
@@ -241,14 +243,14 @@ mod tests {
         state.pot = 4;
 
         let small_pot = {
-            let obs = state.get_observation(0).unwrap();
+            let obs = state.get_observation(&0).unwrap();
             InfoSet::from_observation(&obs, cache).unwrap()
         };
 
         state.pot = 5;
 
         let larger_pot = {
-            let obs = state.get_observation(0).unwrap();
+            let obs = state.get_observation(&0).unwrap();
             InfoSet::from_observation(&obs, cache).unwrap()
         };
 
@@ -267,14 +269,14 @@ mod tests {
         state.round_bets = [0, 0];
 
         let no_bet = {
-            let obs = state.get_observation(0).unwrap();
+            let obs = state.get_observation(&0).unwrap();
             InfoSet::from_observation(&obs, cache).unwrap()
         };
 
         state.round_bets = [0, 2];
 
         let facing_bet = {
-            let obs = state.get_observation(0).unwrap();
+            let obs = state.get_observation(&0).unwrap();
             InfoSet::from_observation(&obs, cache).unwrap()
         };
 
@@ -289,7 +291,7 @@ mod tests {
 
         // Preflop: no public cards.
         let preflop_infoset = {
-            let obs = state.get_observation(0).unwrap();
+            let obs = state.get_observation(&0).unwrap();
             InfoSet::from_observation(&obs, cache).unwrap()
         };
 
@@ -300,7 +302,7 @@ mod tests {
         state.street = Street::Flop;
 
         let flop_infoset = {
-            let obs = state.get_observation(0).unwrap();
+            let obs = state.get_observation(&0).unwrap();
             InfoSet::from_observation(&obs, cache).unwrap()
         };
 
@@ -324,7 +326,7 @@ mod tests {
         state.public_cards.push(next_card);
         state.street = Street::Turn;
 
-        let obs = state.get_observation(0).unwrap();
+        let obs = state.get_observation(&0).unwrap();
 
         // No turn entry was inserted into our test cache.
         assert!(

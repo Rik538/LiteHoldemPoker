@@ -1,3 +1,2 @@
     Checking holdem_core v0.1.0 (/home/richard.dunbar101/Projects/LiteHoldemPoker/rust/holdem_core)
-    Checking holdem_bindings v0.1.0 (/home/richard.dunbar101/Projects/LiteHoldemPoker/rust/holdem_bindings)
-    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.24s
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.12s

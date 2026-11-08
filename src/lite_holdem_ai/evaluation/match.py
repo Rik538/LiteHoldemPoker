@@ -68,6 +68,8 @@ class MatchRunner:
         assert len(payoffs) == 2
         assert sum(payoffs) == 0
 
+        env.state.hand_number += 1
+
         return payoffs, env.state
 
     def play_many(

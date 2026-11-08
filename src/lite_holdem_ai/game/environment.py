@@ -20,10 +20,13 @@ class LiteHoldemEnv:
     def current_player(self) -> int:
         return self.state.current_player
 
-    def reset(self):
+    def reset(self, hand_number=0):
         self.state = GameState()
+        self.state.hand_number = hand_number
+        self.state.button_player = hand_number % 2
         self.state.deck.shuffle_deck()
         self.setup_preflop(self.state)
+
         return self.observe(self.state.current_player, self.state)
 
     def setup_preflop(self, state: GameState | None = None):

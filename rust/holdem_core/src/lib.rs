@@ -15,6 +15,9 @@ pub mod equity_cache;
 pub mod equity_cache_access;
 pub mod cfr;
 pub mod observed_state;
+pub mod agents;
+pub mod runners;
+pub mod bridge;
 
 pub mod python_evaluator;
 

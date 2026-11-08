@@ -1,9 +1,11 @@
 
 use crate::actions::Action;
 
+use bincode::{Encode, Decode};
+
 const NUM_ACTIONS: usize = 5;
 
-fn action_index(action: &Action) -> usize {
+pub fn action_index(action: &Action) -> usize {
     match action {
         Action::Fold => 0,
         Action::Check => 1,
@@ -13,7 +15,7 @@ fn action_index(action: &Action) -> usize {
     }
 }
 
-
+#[derive(Debug,  PartialEq,Encode, Decode, Clone)]
 pub struct CFRNode {
     pub regret_sum: [f64; NUM_ACTIONS],
     pub strategy_sum: [f64; NUM_ACTIONS],

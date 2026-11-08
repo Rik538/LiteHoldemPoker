@@ -1,4 +1,4 @@
-use crate::cards::Card;
+use crate::cards::{Card,Rank,Suit};
 use crate::state::Street;
 use crate::actions::Action;
 
@@ -13,6 +13,30 @@ pub struct ObservedState<'a> {
     pub amount_to_call: i64,
     pub raises_this_round: usize,
     pub legal_actions: [Option<Action>; 3],
+}
+
+impl ObservedState<'static> {
+    pub fn test_state() -> Self {
+        Self {
+            current_player: 0,
+            player: 0,
+            private_cards: [
+                Card { rank: Rank::Ace, suit: Suit::Heart },
+                Card { rank: Rank::King, suit: Suit::Diamond },
+            ],
+            public_cards: &[],
+            street: Street::Preflop,
+            pot: 3,
+            button_player: 0,
+            amount_to_call: 1,
+            raises_this_round: 0,
+            legal_actions: [
+                Some(Action::Fold),
+                Some(Action::Call),
+                Some(Action::Raise),
+            ],
+        }
+    }
 }
 
 
@@ -38,8 +62,8 @@ mod tests {
     fn test_observation_player_cards() {
         let state = setup_game();
 
-        let obs_0 = state.get_observation(0).unwrap();
-        let obs_1 = state.get_observation(1).unwrap();
+        let obs_0 = state.get_observation(&0).unwrap();
+        let obs_1 = state.get_observation(&1).unwrap();
 
         assert_eq!(
             obs_0.private_cards,
@@ -60,7 +84,7 @@ mod tests {
         let state = setup_game();
 
         for player in 0..2 {
-            let obs = state.get_observation(player).unwrap();
+            let obs = state.get_observation(&player).unwrap();
 
             assert_eq!(obs.player, player);
             assert_eq!(obs.current_player, state.current_player);
@@ -73,7 +97,7 @@ mod tests {
         let state = setup_game();
 
         for player in 0..2 {
-            let obs = state.get_observation(player).unwrap();
+            let obs = state.get_observation(&player).unwrap();
 
             assert_eq!(obs.street, state.street);
             assert_eq!(obs.pot, state.pot);
@@ -93,7 +117,7 @@ mod tests {
         let state = setup_game();
 
         for player in 0..2 {
-            let obs = state.get_observation(player).unwrap();
+            let obs = state.get_observation(&player).unwrap();
 
             assert_eq!(
                 obs.amount_to_call,
@@ -107,7 +131,7 @@ mod tests {
         let state = setup_game();
 
         let obs = state
-            .get_observation(state.current_player)
+            .get_observation(&state.current_player)
             .unwrap();
 
         assert_eq!(obs.legal_actions, state.legal_actions());
@@ -123,7 +147,7 @@ mod tests {
 
         let inactive_player = 1 - state.current_player;
 
-        let obs = state.get_observation(inactive_player).unwrap();
+        let obs = state.get_observation(&inactive_player).unwrap();
 
         assert_eq!(obs.legal_actions, [None, None, None]);
     }
@@ -132,16 +156,16 @@ mod tests {
     fn test_invalid_player_returns_none() {
         let state = setup_game();
 
-        assert!(state.get_observation(2).is_none());
-        assert!(state.get_observation(100).is_none());
+        assert!(state.get_observation(&2).is_none());
+        assert!(state.get_observation(&100).is_none());
     }
 
     #[test]
     fn test_observation_before_hand_returns_none() {
         let state = GameState::new();
 
-        assert!(state.get_observation(0).is_none());
-        assert!(state.get_observation(1).is_none());
+        assert!(state.get_observation(&0).is_none());
+        assert!(state.get_observation(&1).is_none());
     }
 
     #[test]
@@ -160,7 +184,7 @@ mod tests {
             .take(3)
             .collect();
 
-        let obs = state.get_observation(0).unwrap();
+        let obs = state.get_observation(&0).unwrap();
 
         // Contents should match.
         assert_eq!(
